@@ -7,9 +7,9 @@ const (
 )
 
 type Cartridge struct {
-	PRG     []byte
-	CHR     []byte
-	Mapper  int
-	Mirror  int
-	Battery bool
+	PRG     []byte // PRG-ROM banks
+	CHR     []byte // CHR-ROM banks
+	Mapper  int    // mapper type
+	Mirror  int    // mirroring mode
+	Battery bool   // battery present
 }
