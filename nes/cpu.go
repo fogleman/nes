@@ -2,8 +2,88 @@ package nes
 
 import "fmt"
 
+// Addressing Modes
+const (
+	_ = iota
+	ABSOLUTE
+	ABSOLUTE_X
+	ABSOLUTE_Y
+	ACCUMULATOR
+	IMMEDIATE
+	IMPLIED
+	INDEXED_INDIRECT
+	INDIRECT
+	INDIRECT_INDEXED
+	RELATIVE
+	ZERO_PAGE
+	ZERO_PAGE_X
+	ZERO_PAGE_Y
+)
+
+var InstructionMode = [256]byte{
+	0x6, 0x7, 0x0, 0x0, 0x0, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x0, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x1, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x6, 0x7, 0x0, 0x0, 0x0, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x6, 0x7, 0x0, 0x0, 0x0, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x8, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x0, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x0, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0xc, 0xc, 0xd, 0x0, 0x6, 0x3, 0x6, 0x0, 0x0, 0x2, 0x0, 0x0,
+	0x5, 0x7, 0x5, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0xc, 0xc, 0xd, 0x0, 0x6, 0x3, 0x6, 0x0, 0x2, 0x2, 0x3, 0x0,
+	0x5, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x5, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+}
+
+var InstructionBytes = [256]byte{
+	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,
+	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	3, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	0, 2, 0, 0, 2, 2, 2, 0, 1, 0, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 0, 3, 0, 0,
+	2, 2, 2, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+}
+
+var InstructionCycles = [256]byte{
+	7, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 0, 4, 6, 0,
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+	6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 4, 4, 6, 0,
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+	6, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 3, 4, 6, 0,
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+	6, 6, 0, 0, 0, 3, 5, 0, 4, 2, 2, 0, 5, 4, 6, 0,
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+	0, 6, 0, 0, 3, 3, 3, 0, 2, 0, 2, 0, 4, 4, 4, 0,
+	2, 6, 0, 0, 4, 4, 4, 0, 2, 5, 2, 0, 0, 5, 0, 0,
+	2, 6, 2, 0, 3, 3, 3, 0, 2, 2, 2, 0, 4, 4, 4, 0,
+	2, 5, 0, 0, 4, 4, 4, 0, 2, 4, 2, 0, 4, 4, 4, 0,
+	2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0,
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+	2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0,
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+}
+
+func PageCrossed(a, b uint16) bool {
+	return a&0xFF00 != b&0xFF00
+}
+
 type CPU struct {
-	Memory        // memory map
+	Memory        // memory interface
+	Cycles uint64 // number of cycles
 	PC     uint16 // program counter
 	SP     byte   // stack pointer
 	A      byte   // accumulator
@@ -25,44 +105,8 @@ func NewCPU(memory Memory) *CPU {
 }
 
 func (cpu *CPU) Reset() {
+	cpu.Cycles = 0
 	cpu.PC = cpu.Read16(0xFFFC)
-}
-
-func (cpu *CPU) ReadPC() byte {
-	result := cpu.Read(cpu.PC)
-	cpu.PC += 1
-	return result
-}
-
-func (cpu *CPU) ReadPC16() uint16 {
-	result := cpu.Read16(cpu.PC)
-	cpu.PC += 2
-	return result
-}
-
-func (cpu *CPU) Step() {
-	fmt.Println(cpu)
-	cpu.ExecuteInstruction()
-}
-
-func (cpu *CPU) ExecuteInstruction() {
-	opcode := cpu.ReadPC()
-	switch opcode {
-	case 0x69:
-		cpu.ADC(cpu.Immediate())
-	case 0x78:
-		cpu.SEI()
-	case 0x9A:
-		cpu.TXS()
-	case 0xA2:
-		cpu.LDX(cpu.Immediate())
-	case 0xAD:
-		cpu.LDA(cpu.Absolute())
-	case 0xD8:
-		cpu.CLD()
-	default:
-		fmt.Printf("Unrecognized opcode: 0x%02x\n", opcode)
-	}
 }
 
 // Flag Functions
@@ -105,63 +149,6 @@ func (cpu *CPU) SetN(value byte) {
 	}
 }
 
-// Addressing Modes
-
-func (cpu *CPU) Immediate() uint16 {
-	result := cpu.PC
-	cpu.PC++
-	return result
-}
-
-func (cpu *CPU) ZeroPage() uint16 {
-	return uint16(cpu.ReadPC())
-}
-
-func (cpu *CPU) ZeroPageX() uint16 {
-	return uint16(cpu.ReadPC() + cpu.X)
-}
-
-func (cpu *CPU) ZeroPageY() uint16 {
-	return uint16(cpu.ReadPC() + cpu.Y)
-}
-
-func (cpu *CPU) Relative() uint16 {
-	offset := uint16(cpu.ReadPC())
-	if offset < 0x80 {
-		return cpu.PC + offset
-	} else {
-		return cpu.PC + offset - 0x100
-	}
-}
-
-func (cpu *CPU) Absolute() uint16 {
-	return cpu.ReadPC16()
-}
-
-func (cpu *CPU) AbsoluteX() uint16 {
-	return cpu.ReadPC16() + uint16(cpu.X)
-}
-
-func (cpu *CPU) AbsoluteY() uint16 {
-	return cpu.ReadPC16() + uint16(cpu.Y)
-}
-
-func (cpu *CPU) Indirect() uint16 {
-	a := cpu.ReadPC16()
-	b := (a & 0xFF00) | uint16(byte(a)+1)
-	lo := cpu.Read(a)
-	hi := cpu.Read(b)
-	return uint16(hi)<<8 | uint16(lo)
-}
-
-func (cpu *CPU) IndexedIndirect() uint16 {
-	return cpu.Read16(uint16(cpu.ReadPC() + cpu.X))
-}
-
-func (cpu *CPU) IndirectIndexed() uint16 {
-	return cpu.Read16(uint16(cpu.ReadPC())) + uint16(cpu.Y)
-}
-
 // Instructions
 
 func (cpu *CPU) ADC(address uint16) {
@@ -189,4 +176,74 @@ func (cpu *CPU) SEI() {
 
 func (cpu *CPU) TXS() {
 	cpu.SP = cpu.X
+}
+
+// Step
+
+func (cpu *CPU) Step() {
+	fmt.Println(cpu)
+	opcode := cpu.Read(cpu.PC)
+	mode := InstructionMode[opcode]
+
+	var address uint16
+	// var pageCrossed bool
+	switch mode {
+	case ABSOLUTE:
+		address = cpu.Read16(cpu.PC + 1)
+	case ABSOLUTE_X:
+		address = cpu.Read16(cpu.PC+1) + uint16(cpu.X)
+		// pageCrossed = PageCrossed(address-uint16(cpu.X), address)
+	case ABSOLUTE_Y:
+		address = cpu.Read16(cpu.PC+1) + uint16(cpu.Y)
+		// pageCrossed = PageCrossed(address-uint16(cpu.Y), address)
+	case ACCUMULATOR:
+		break
+	case IMMEDIATE:
+		address = cpu.PC + 1
+	case IMPLIED:
+		break
+	case INDEXED_INDIRECT:
+		address = cpu.Read16(uint16(cpu.Read(cpu.PC+1) + cpu.X))
+	case INDIRECT:
+		a := cpu.Read16(cpu.PC + 1)
+		b := (a & 0xFF00) | uint16(byte(a)+1)
+		lo := cpu.Read(a)
+		hi := cpu.Read(b)
+		address = uint16(hi)<<8 | uint16(lo)
+	case INDIRECT_INDEXED:
+		address = cpu.Read16(uint16(cpu.Read(cpu.PC+1))) + uint16(cpu.Y)
+		// pageCrossed = PageCrossed(address-uint16(cpu.Y), address)
+	case RELATIVE:
+		offset := uint16(cpu.Read(cpu.PC + 1))
+		if offset < 0x80 {
+			address = cpu.PC + 2 + offset
+		} else {
+			address = cpu.PC + 2 + offset - 0x100
+		}
+	case ZERO_PAGE:
+		address = uint16(cpu.Read(cpu.PC + 1))
+	case ZERO_PAGE_X:
+		address = uint16(cpu.Read(cpu.PC+1) + cpu.X)
+	case ZERO_PAGE_Y:
+		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
+	}
+
+	cpu.PC += uint16(InstructionBytes[opcode])
+
+	switch opcode {
+	case 0x69:
+		cpu.ADC(address)
+	case 0x78:
+		cpu.SEI()
+	case 0x9A:
+		cpu.TXS()
+	case 0xA2:
+		cpu.LDX(address)
+	case 0xAD:
+		cpu.LDA(address)
+	case 0xD8:
+		cpu.CLD()
+	default:
+		fmt.Printf("Unrecognized opcode: 0x%02x\n", opcode)
+	}
 }
