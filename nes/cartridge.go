@@ -13,3 +13,8 @@ type Cartridge struct {
 	Mirror  int    // mirroring mode
 	Battery bool   // battery present
 }
+
+func (c *Cartridge) Read(address uint16) byte {
+	index := (int(address) - 0x8000) % len(c.PRG)
+	return c.PRG[index]
+}

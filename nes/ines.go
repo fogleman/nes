@@ -3,7 +3,6 @@ package nes
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 )
@@ -36,7 +35,6 @@ func LoadNESFile(path string) (*Cartridge, error) {
 	if err := binary.Read(file, binary.LittleEndian, &header); err != nil {
 		return nil, err
 	}
-	fmt.Println(header)
 
 	// verify header magic number
 	if header.Magic != NESFileMagic {

@@ -1,16 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/fogleman/nes/nes"
 )
 
 func main() {
-	cartridge, err := nes.LoadNESFile("roms/nestest.nes")
+	nes, err := nes.NewNES("roms/nestest.nes")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Println(cartridge)
+	for i := 0; i < 10; i++ {
+		nes.CPU.Step()
+	}
 }
