@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-// Addressing Modes
+// addressing modes
 const (
 	_ = iota
 	modeAbsolute
@@ -23,8 +23,7 @@ const (
 	modeZeroPageY
 )
 
-// Instruction Tables
-
+// instructionModes indicates the addressing mode for each instruction
 var instructionModes = [256]byte{
 	6, 7, 0, 0, 0, 11, 11, 0, 6, 5, 4, 0, 0, 1, 1, 0,
 	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
@@ -44,44 +43,49 @@ var instructionModes = [256]byte{
 	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
 }
 
+// instructionSizes indicates the size of each instruction in bytes
 var instructionSizes = [256]byte{
-	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,
-	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	1, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
 	3, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
-	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
-	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
-	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
-	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
-	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
-	0, 2, 0, 0, 2, 2, 2, 0, 1, 0, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
+	1, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
+	1, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 0, 1, 0, 3, 3, 3, 0,
 	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 0, 3, 0, 0,
 	2, 2, 2, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
 	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
 	2, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
-	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
 	2, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
-	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
+	2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,
 }
 
+// instructionCycles indicates the number of cycles used by each instruction,
+// not including conditional cycles
 var instructionCycles = [256]byte{
-	7, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 0, 4, 6, 0,
-	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
-	6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 4, 4, 6, 0,
-	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
-	6, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 3, 4, 6, 0,
-	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
-	6, 6, 0, 0, 0, 3, 5, 0, 4, 2, 2, 0, 5, 4, 6, 0,
-	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
-	0, 6, 0, 0, 3, 3, 3, 0, 2, 0, 2, 0, 4, 4, 4, 0,
-	2, 6, 0, 0, 4, 4, 4, 0, 2, 5, 2, 0, 0, 5, 0, 0,
-	2, 6, 2, 0, 3, 3, 3, 0, 2, 2, 2, 0, 4, 4, 4, 0,
-	2, 5, 0, 0, 4, 4, 4, 0, 2, 4, 2, 0, 4, 4, 4, 0,
-	2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0,
-	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
-	2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0,
-	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
+	7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	6, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+	2, 6, 2, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
+	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+	2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
+	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	2, 6, 3, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
 }
 
+// instructionPageCycles indicates the number of cycles used by each
+// instruction when a page is crossed
 var instructionPageCycles = [256]byte{
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
@@ -101,6 +105,7 @@ var instructionPageCycles = [256]byte{
 	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
 }
 
+// instructionNames indicates the name of each instruction
 var instructionNames = [256]string{
 	"BRK", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
 	"PHP", "ORA", "ASL", "UNK", "UNK", "ORA", "ASL", "UNK",
@@ -136,8 +141,6 @@ var instructionNames = [256]string{
 	"SED", "SBC", "UNK", "UNK", "UNK", "SBC", "INC", "UNK",
 }
 
-// CPU
-
 type CPU struct {
 	Memory        // memory interface
 	Cycles uint64 // number of cycles
@@ -164,6 +167,7 @@ func NewCPU(memory Memory) *CPU {
 	return &cpu
 }
 
+// createTable builds a function table for each instruction
 func (c *CPU) createTable() {
 	c.table = [256]func(*stepInfo){
 		c.brk, c.ora, c.unk, c.unk, c.unk, c.ora, c.asl, c.unk,
@@ -201,6 +205,7 @@ func (c *CPU) createTable() {
 	}
 }
 
+// Reset resets the CPU to its initial powerup state
 func (cpu *CPU) Reset() {
 	cpu.Cycles = 0
 	// cpu.PC = cpu.Read16(0xFFFC)
@@ -209,12 +214,13 @@ func (cpu *CPU) Reset() {
 	cpu.SetFlags(0x24)
 }
 
-// Helper Functions
-
+// pagesDiffer returns true if the two addresses are within different pages
 func pagesDiffer(a, b uint16) bool {
 	return a&0xFF00 != b&0xFF00
 }
 
+// read16bug emulates a 6502 bug that caused the low byte to wrap without
+// incrementing the high byte
 func (cpu *CPU) read16bug(address uint16) uint16 {
 	a := address
 	b := (a & 0xFF00) | uint16(byte(a)+1)
@@ -223,6 +229,7 @@ func (cpu *CPU) read16bug(address uint16) uint16 {
 	return uint16(hi)<<8 | uint16(lo)
 }
 
+// printInstruction prints the current CPU state
 func (cpu *CPU) printInstruction() {
 	opcode := cpu.Read(cpu.PC)
 	bytes := instructionSizes[opcode]
@@ -243,18 +250,19 @@ func (cpu *CPU) printInstruction() {
 		cpu.A, cpu.X, cpu.Y, cpu.Flags(), cpu.SP, (cpu.Cycles*3)%341)
 }
 
-// Stack Functions
-
+// push pushes a byte onto the stack
 func (cpu *CPU) push(value byte) {
 	cpu.Write(0x100|uint16(cpu.SP), value)
 	cpu.SP--
 }
 
+// pull pops a byte from the stack
 func (cpu *CPU) pull() byte {
 	cpu.SP++
 	return cpu.Read(0x100 | uint16(cpu.SP))
 }
 
+// push pushes two bytes onto the stack
 func (cpu *CPU) push16(value uint16) {
 	hi := byte(value >> 8)
 	lo := byte(value & 0xFF)
@@ -262,14 +270,14 @@ func (cpu *CPU) push16(value uint16) {
 	cpu.push(lo)
 }
 
+// pull pops two bytes from the stack
 func (cpu *CPU) pull16() uint16 {
 	lo := uint16(cpu.pull())
 	hi := uint16(cpu.pull())
 	return hi<<8 | lo
 }
 
-// Flag Functions
-
+// Flags returns the processor status flags
 func (cpu *CPU) Flags() byte {
 	var flags byte
 	flags |= cpu.C << 0
@@ -283,6 +291,7 @@ func (cpu *CPU) Flags() byte {
 	return flags
 }
 
+// SetFlags sets the processor status flags
 func (cpu *CPU) SetFlags(flags byte) {
 	cpu.C = (flags >> 0) & 1
 	cpu.Z = (flags >> 1) & 1
@@ -294,6 +303,7 @@ func (cpu *CPU) SetFlags(flags byte) {
 	cpu.N = (flags >> 7) & 1
 }
 
+// setZ sets the zero flag if the argument is zero
 func (cpu *CPU) setZ(value byte) {
 	if value == 0 {
 		cpu.Z = 1
@@ -302,6 +312,7 @@ func (cpu *CPU) setZ(value byte) {
 	}
 }
 
+// setN sets the negative flag if the argument is negative (high bit is set)
 func (cpu *CPU) setN(value byte) {
 	if value&0x80 != 0 {
 		cpu.N = 1
@@ -310,13 +321,13 @@ func (cpu *CPU) setN(value byte) {
 	}
 }
 
-// Step
-
+// stepInfo contains information that the instruction functions to use
 type stepInfo struct {
 	address uint16
 	mode    byte
 }
 
+// Step executes a single CPU instruction
 func (cpu *CPU) Step() {
 	opcode := cpu.Read(cpu.PC)
 	mode := instructionModes[opcode]
@@ -370,7 +381,7 @@ func (cpu *CPU) Step() {
 	cpu.table[opcode](info)
 }
 
-// Instructions
+// ADC - Add with Carry
 func (cpu *CPU) adc(info *stepInfo) {
 	a := cpu.A
 	b := cpu.Read(info.address)
@@ -390,12 +401,14 @@ func (cpu *CPU) adc(info *stepInfo) {
 	}
 }
 
+// AND - Logical AND
 func (cpu *CPU) and(info *stepInfo) {
 	cpu.A = cpu.A & cpu.Read(info.address)
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// ASL - Arithmetic Shift Left
 func (cpu *CPU) asl(info *stepInfo) {
 	if info.mode == modeAccumulator {
 		cpu.C = (cpu.A >> 7) & 1
@@ -412,6 +425,7 @@ func (cpu *CPU) asl(info *stepInfo) {
 	}
 }
 
+// BCC - Branch if Carry Clear
 func (cpu *CPU) bcc(info *stepInfo) {
 	if cpu.C == 0 {
 		cpu.PC = info.address
@@ -419,6 +433,7 @@ func (cpu *CPU) bcc(info *stepInfo) {
 	}
 }
 
+// BCS - Branch if Carry Set
 func (cpu *CPU) bcs(info *stepInfo) {
 	if cpu.C != 0 {
 		cpu.PC = info.address
@@ -426,6 +441,7 @@ func (cpu *CPU) bcs(info *stepInfo) {
 	}
 }
 
+// BEQ - Branch if Equal
 func (cpu *CPU) beq(info *stepInfo) {
 	if cpu.Z != 0 {
 		cpu.PC = info.address
@@ -433,6 +449,7 @@ func (cpu *CPU) beq(info *stepInfo) {
 	}
 }
 
+// BIT - Bit Test
 func (cpu *CPU) bit(info *stepInfo) {
 	value := cpu.Read(info.address)
 	cpu.V = (value >> 6) & 1
@@ -440,6 +457,7 @@ func (cpu *CPU) bit(info *stepInfo) {
 	cpu.setN(value)
 }
 
+// BMI - Branch if Minus
 func (cpu *CPU) bmi(info *stepInfo) {
 	if cpu.N != 0 {
 		cpu.PC = info.address
@@ -447,6 +465,7 @@ func (cpu *CPU) bmi(info *stepInfo) {
 	}
 }
 
+// BNE - Branch if Not Equal
 func (cpu *CPU) bne(info *stepInfo) {
 	if cpu.Z == 0 {
 		cpu.PC = info.address
@@ -454,6 +473,7 @@ func (cpu *CPU) bne(info *stepInfo) {
 	}
 }
 
+// BPL - Branch if Positive
 func (cpu *CPU) bpl(info *stepInfo) {
 	if cpu.N == 0 {
 		cpu.PC = info.address
@@ -461,10 +481,12 @@ func (cpu *CPU) bpl(info *stepInfo) {
 	}
 }
 
+// BRK - Force Interrupt
 func (cpu *CPU) brk(info *stepInfo) {
 	log.Fatalln("Unimplemented instruction: BRK")
 }
 
+// BVC - Branch if Overflow Clear
 func (cpu *CPU) bvc(info *stepInfo) {
 	if cpu.V == 0 {
 		cpu.PC = info.address
@@ -472,6 +494,7 @@ func (cpu *CPU) bvc(info *stepInfo) {
 	}
 }
 
+// BVS - Branch if Overflow Set
 func (cpu *CPU) bvs(info *stepInfo) {
 	if cpu.V != 0 {
 		cpu.PC = info.address
@@ -479,22 +502,27 @@ func (cpu *CPU) bvs(info *stepInfo) {
 	}
 }
 
+// CLC - Clear Carry Flag
 func (cpu *CPU) clc(info *stepInfo) {
 	cpu.C = 0
 }
 
+// CLD - Clear Decimal Mode
 func (cpu *CPU) cld(info *stepInfo) {
 	cpu.D = 0
 }
 
+// CLI - Clear Interrupt Disable
 func (cpu *CPU) cli(info *stepInfo) {
 	cpu.I = 0
 }
 
+// CLV - Clear Overflow Flag
 func (cpu *CPU) clv(info *stepInfo) {
 	cpu.V = 0
 }
 
+// CMP - Compare
 func (cpu *CPU) cmp(info *stepInfo) {
 	M := cpu.Read(info.address)
 	value := cpu.A - M
@@ -507,6 +535,7 @@ func (cpu *CPU) cmp(info *stepInfo) {
 	}
 }
 
+// CPX - Compare X Register
 func (cpu *CPU) cpx(info *stepInfo) {
 	M := cpu.Read(info.address)
 	value := cpu.X - M
@@ -519,6 +548,7 @@ func (cpu *CPU) cpx(info *stepInfo) {
 	}
 }
 
+// CPY - Compare Y Register
 func (cpu *CPU) cpy(info *stepInfo) {
 	M := cpu.Read(info.address)
 	value := cpu.Y - M
@@ -531,6 +561,7 @@ func (cpu *CPU) cpy(info *stepInfo) {
 	}
 }
 
+// DEC - Decrement Memory
 func (cpu *CPU) dec(info *stepInfo) {
 	value := cpu.Read(info.address) - 1
 	cpu.Write(info.address, value)
@@ -538,24 +569,28 @@ func (cpu *CPU) dec(info *stepInfo) {
 	cpu.setN(value)
 }
 
+// DEX - Decrement X Register
 func (cpu *CPU) dex(info *stepInfo) {
 	cpu.X--
 	cpu.setZ(cpu.X)
 	cpu.setN(cpu.X)
 }
 
+// DEY - Decrement Y Register
 func (cpu *CPU) dey(info *stepInfo) {
 	cpu.Y--
 	cpu.setZ(cpu.Y)
 	cpu.setN(cpu.Y)
 }
 
+// EOR - Exclusive OR
 func (cpu *CPU) eor(info *stepInfo) {
 	cpu.A = cpu.A ^ cpu.Read(info.address)
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// INC - Increment Memory
 func (cpu *CPU) inc(info *stepInfo) {
 	value := cpu.Read(info.address) + 1
 	cpu.Write(info.address, value)
@@ -563,45 +598,53 @@ func (cpu *CPU) inc(info *stepInfo) {
 	cpu.setN(value)
 }
 
+// INX - Increment X Register
 func (cpu *CPU) inx(info *stepInfo) {
 	cpu.X++
 	cpu.setZ(cpu.X)
 	cpu.setN(cpu.X)
 }
 
+// INY - Increment Y Register
 func (cpu *CPU) iny(info *stepInfo) {
 	cpu.Y++
 	cpu.setZ(cpu.Y)
 	cpu.setN(cpu.Y)
 }
 
+// JMP - Jump
 func (cpu *CPU) jmp(info *stepInfo) {
 	cpu.PC = info.address
 }
 
+// JSR - Jump to Subroutine
 func (cpu *CPU) jsr(info *stepInfo) {
 	cpu.push16(cpu.PC - 1)
 	cpu.PC = info.address
 }
 
+// LDA - Load Accumulator
 func (cpu *CPU) lda(info *stepInfo) {
 	cpu.A = cpu.Read(info.address)
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// LDX - Load X Register
 func (cpu *CPU) ldx(info *stepInfo) {
 	cpu.X = cpu.Read(info.address)
 	cpu.setZ(cpu.X)
 	cpu.setN(cpu.X)
 }
 
+// LDY - Load Y Register
 func (cpu *CPU) ldy(info *stepInfo) {
 	cpu.Y = cpu.Read(info.address)
 	cpu.setZ(cpu.Y)
 	cpu.setN(cpu.Y)
 }
 
+// LSR - Logical Shift Right
 func (cpu *CPU) lsr(info *stepInfo) {
 	if info.mode == modeAccumulator {
 		cpu.C = cpu.A & 1
@@ -618,33 +661,40 @@ func (cpu *CPU) lsr(info *stepInfo) {
 	}
 }
 
+// NOP - No Operation
 func (cpu *CPU) nop(info *stepInfo) {
 }
 
+// ORA - Logical Inclusive OR
 func (cpu *CPU) ora(info *stepInfo) {
 	cpu.A = cpu.A | cpu.Read(info.address)
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// PHA - Push Accumulator
 func (cpu *CPU) pha(info *stepInfo) {
 	cpu.push(cpu.A)
 }
 
+// PHP - Push Processor Status
 func (cpu *CPU) php(info *stepInfo) {
 	cpu.push(cpu.Flags() | 0x10)
 }
 
+// PLA - Pull Accumulator
 func (cpu *CPU) pla(info *stepInfo) {
 	cpu.A = cpu.pull()
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// PLP - Pull Processor Status
 func (cpu *CPU) plp(info *stepInfo) {
 	cpu.SetFlags(cpu.pull()&0xEF | 0x20)
 }
 
+// ROL - Rotate Left
 func (cpu *CPU) rol(info *stepInfo) {
 	if info.mode == modeAccumulator {
 		c := cpu.C
@@ -663,6 +713,7 @@ func (cpu *CPU) rol(info *stepInfo) {
 	}
 }
 
+// ROR - Rotate Right
 func (cpu *CPU) ror(info *stepInfo) {
 	if info.mode == modeAccumulator {
 		c := cpu.C
@@ -681,15 +732,18 @@ func (cpu *CPU) ror(info *stepInfo) {
 	}
 }
 
+// RTI - Return from Interrupt
 func (cpu *CPU) rti(info *stepInfo) {
 	cpu.SetFlags(cpu.pull()&0xEF | 0x20)
 	cpu.PC = cpu.pull16()
 }
 
+// RTS - Return from Subroutine
 func (cpu *CPU) rts(info *stepInfo) {
 	cpu.PC = cpu.pull16() + 1
 }
 
+// SBC - Subtract with Carry
 func (cpu *CPU) sbc(info *stepInfo) {
 	a := cpu.A
 	b := cpu.Read(info.address)
@@ -709,64 +763,76 @@ func (cpu *CPU) sbc(info *stepInfo) {
 	}
 }
 
+// SEC - Set Carry Flag
 func (cpu *CPU) sec(info *stepInfo) {
 	cpu.C = 1
 }
 
+// SED - Set Decimal Flag
 func (cpu *CPU) sed(info *stepInfo) {
 	cpu.D = 1
 }
 
+// SEI - Set Interrupt Disable
 func (cpu *CPU) sei(info *stepInfo) {
 	cpu.I = 1
 }
 
+// STA - Store Accumulator
 func (cpu *CPU) sta(info *stepInfo) {
 	cpu.Write(info.address, cpu.A)
 }
 
+// STX - Store X Register
 func (cpu *CPU) stx(info *stepInfo) {
 	cpu.Write(info.address, cpu.X)
 }
 
+// STY - Store Y Register
 func (cpu *CPU) sty(info *stepInfo) {
 	cpu.Write(info.address, cpu.Y)
 }
 
+// TAX - Transfer Accumulator to X
 func (cpu *CPU) tax(info *stepInfo) {
 	cpu.X = cpu.A
 	cpu.setZ(cpu.X)
 	cpu.setN(cpu.X)
 }
 
+// TAY - Transfer Accumulator to Y
 func (cpu *CPU) tay(info *stepInfo) {
 	cpu.Y = cpu.A
 	cpu.setZ(cpu.Y)
 	cpu.setN(cpu.Y)
 }
 
+// TSX - Transfer Stack Pointer to X
 func (cpu *CPU) tsx(info *stepInfo) {
 	cpu.X = cpu.SP
 	cpu.setZ(cpu.X)
 	cpu.setN(cpu.X)
 }
 
+// TXA - Transfer X to Accumulator
 func (cpu *CPU) txa(info *stepInfo) {
 	cpu.A = cpu.X
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// TXS - Transfer X to Stack Pointer
 func (cpu *CPU) txs(info *stepInfo) {
 	cpu.SP = cpu.X
 }
 
+// TYA - Transfer Y to Accumulator
 func (cpu *CPU) tya(info *stepInfo) {
 	cpu.A = cpu.Y
 	cpu.setZ(cpu.A)
 	cpu.setN(cpu.A)
 }
 
+// UNK - Unknown Opcode
 func (cpu *CPU) unk(info *stepInfo) {
-	log.Fatalln("Unimplemented instruction: UNK")
 }
