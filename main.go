@@ -1,17 +1,14 @@
 package main
 
-import (
-	"log"
-
-	"github.com/fogleman/nes/nes"
-)
+import "github.com/fogleman/nes/ui"
 
 func main() {
-	nes, err := nes.NewNES("roms/nestest.nes")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	for {
-		nes.CPU.Step()
-	}
+	// nes, err := nes.NewNES("roms/nestest.nes")
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// for {
+	// 	nes.CPU.Step()
+	// }
+	ui.Run()
 }
