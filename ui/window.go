@@ -22,19 +22,19 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func loadImage(path string) (image.Image, error) {
+func loadImage(path string) (*image.RGBA, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	return png.Decode(file)
-}
-
-func convertImage(im image.Image) *image.RGBA {
+	im, err := png.Decode(file)
+	if err != nil {
+		return nil, err
+	}
 	rgba := image.NewRGBA(im.Bounds())
 	draw.Draw(rgba, rgba.Bounds(), im, image.Point{0, 0}, draw.Src)
-	return rgba
+	return rgba, nil
 }
 
 func createTexture() uint32 {
@@ -82,13 +82,12 @@ func Run() {
 	if err != nil {
 		panic(err)
 	}
-	rgba := convertImage(im)
 
 	texture := createTexture()
 
 	frame := 0
 	for !window.ShouldClose() {
-		setTexture(texture, rgba, (frame*4)%1024)
+		setTexture(texture, im, (frame*4)%1024)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		gl.Begin(gl.QUADS)
 		gl.TexCoord2f(0, 1)
