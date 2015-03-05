@@ -214,9 +214,27 @@ func (cpu *CPU) Reset() {
 	cpu.SetFlags(0x24)
 }
 
-// pagesDiffer returns true if the two addresses are within different pages
+// pagesDiffer returns true if the two addresses reference different pages
 func pagesDiffer(a, b uint16) bool {
 	return a&0xFF00 != b&0xFF00
+}
+
+// addBranchCycles adds a cycle for taking a branch and adds another cycle
+// if the branch jumps to a new page
+func (cpu *CPU) addBranchCycles(info *stepInfo) {
+	cpu.Cycles++
+	if pagesDiffer(info.pc, info.address) {
+		cpu.Cycles++
+	}
+}
+
+func (cpu *CPU) compare(a, b byte) {
+	cpu.setZN(a - b)
+	if a >= b {
+		cpu.C = 1
+	} else {
+		cpu.C = 0
+	}
 }
 
 // read16bug emulates a 6502 bug that caused the low byte to wrap without
@@ -321,7 +339,13 @@ func (cpu *CPU) setN(value byte) {
 	}
 }
 
-// stepInfo contains information that the instruction functions to use
+// setZN sets the zero flag and the negative flag
+func (cpu *CPU) setZN(value byte) {
+	cpu.setZ(value)
+	cpu.setN(value)
+}
+
+// stepInfo contains information that the instruction functions use
 type stepInfo struct {
 	address uint16
 	pc      uint16
@@ -389,8 +413,7 @@ func (cpu *CPU) adc(info *stepInfo) {
 	b := cpu.Read(info.address)
 	c := cpu.C
 	cpu.A = a + b + c
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 	if int(a)+int(b)+int(c) > 0xFF {
 		cpu.C = 1
 	} else {
@@ -406,8 +429,7 @@ func (cpu *CPU) adc(info *stepInfo) {
 // AND - Logical AND
 func (cpu *CPU) and(info *stepInfo) {
 	cpu.A = cpu.A & cpu.Read(info.address)
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // ASL - Arithmetic Shift Left
@@ -415,15 +437,13 @@ func (cpu *CPU) asl(info *stepInfo) {
 	if info.mode == modeAccumulator {
 		cpu.C = (cpu.A >> 7) & 1
 		cpu.A <<= 1
-		cpu.setZ(cpu.A)
-		cpu.setN(cpu.A)
+		cpu.setZN(cpu.A)
 	} else {
 		value := cpu.Read(info.address)
 		cpu.C = (value >> 7) & 1
 		value <<= 1
 		cpu.Write(info.address, value)
-		cpu.setZ(value)
-		cpu.setN(value)
+		cpu.setZN(value)
 	}
 }
 
@@ -431,10 +451,7 @@ func (cpu *CPU) asl(info *stepInfo) {
 func (cpu *CPU) bcc(info *stepInfo) {
 	if cpu.C == 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -442,10 +459,7 @@ func (cpu *CPU) bcc(info *stepInfo) {
 func (cpu *CPU) bcs(info *stepInfo) {
 	if cpu.C != 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -453,10 +467,7 @@ func (cpu *CPU) bcs(info *stepInfo) {
 func (cpu *CPU) beq(info *stepInfo) {
 	if cpu.Z != 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -472,10 +483,7 @@ func (cpu *CPU) bit(info *stepInfo) {
 func (cpu *CPU) bmi(info *stepInfo) {
 	if cpu.N != 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -483,10 +491,7 @@ func (cpu *CPU) bmi(info *stepInfo) {
 func (cpu *CPU) bne(info *stepInfo) {
 	if cpu.Z == 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -494,10 +499,7 @@ func (cpu *CPU) bne(info *stepInfo) {
 func (cpu *CPU) bpl(info *stepInfo) {
 	if cpu.N == 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -510,10 +512,7 @@ func (cpu *CPU) brk(info *stepInfo) {
 func (cpu *CPU) bvc(info *stepInfo) {
 	if cpu.V == 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -521,10 +520,7 @@ func (cpu *CPU) bvc(info *stepInfo) {
 func (cpu *CPU) bvs(info *stepInfo) {
 	if cpu.V != 0 {
 		cpu.PC = info.address
-		cpu.Cycles++
-		if pagesDiffer(info.pc, info.address) {
-			cpu.Cycles++
-		}
+		cpu.addBranchCycles(info)
 	}
 }
 
@@ -550,92 +546,64 @@ func (cpu *CPU) clv(info *stepInfo) {
 
 // CMP - Compare
 func (cpu *CPU) cmp(info *stepInfo) {
-	M := cpu.Read(info.address)
-	value := cpu.A - M
-	cpu.setZ(value)
-	cpu.setN(value)
-	if cpu.A >= M {
-		cpu.C = 1
-	} else {
-		cpu.C = 0
-	}
+	value := cpu.Read(info.address)
+	cpu.compare(cpu.A, value)
 }
 
 // CPX - Compare X Register
 func (cpu *CPU) cpx(info *stepInfo) {
-	M := cpu.Read(info.address)
-	value := cpu.X - M
-	cpu.setZ(value)
-	cpu.setN(value)
-	if cpu.X >= M {
-		cpu.C = 1
-	} else {
-		cpu.C = 0
-	}
+	value := cpu.Read(info.address)
+	cpu.compare(cpu.X, value)
 }
 
 // CPY - Compare Y Register
 func (cpu *CPU) cpy(info *stepInfo) {
-	M := cpu.Read(info.address)
-	value := cpu.Y - M
-	cpu.setZ(value)
-	cpu.setN(value)
-	if cpu.Y >= M {
-		cpu.C = 1
-	} else {
-		cpu.C = 0
-	}
+	value := cpu.Read(info.address)
+	cpu.compare(cpu.Y, value)
 }
 
 // DEC - Decrement Memory
 func (cpu *CPU) dec(info *stepInfo) {
 	value := cpu.Read(info.address) - 1
 	cpu.Write(info.address, value)
-	cpu.setZ(value)
-	cpu.setN(value)
+	cpu.setZN(value)
 }
 
 // DEX - Decrement X Register
 func (cpu *CPU) dex(info *stepInfo) {
 	cpu.X--
-	cpu.setZ(cpu.X)
-	cpu.setN(cpu.X)
+	cpu.setZN(cpu.X)
 }
 
 // DEY - Decrement Y Register
 func (cpu *CPU) dey(info *stepInfo) {
 	cpu.Y--
-	cpu.setZ(cpu.Y)
-	cpu.setN(cpu.Y)
+	cpu.setZN(cpu.Y)
 }
 
 // EOR - Exclusive OR
 func (cpu *CPU) eor(info *stepInfo) {
 	cpu.A = cpu.A ^ cpu.Read(info.address)
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // INC - Increment Memory
 func (cpu *CPU) inc(info *stepInfo) {
 	value := cpu.Read(info.address) + 1
 	cpu.Write(info.address, value)
-	cpu.setZ(value)
-	cpu.setN(value)
+	cpu.setZN(value)
 }
 
 // INX - Increment X Register
 func (cpu *CPU) inx(info *stepInfo) {
 	cpu.X++
-	cpu.setZ(cpu.X)
-	cpu.setN(cpu.X)
+	cpu.setZN(cpu.X)
 }
 
 // INY - Increment Y Register
 func (cpu *CPU) iny(info *stepInfo) {
 	cpu.Y++
-	cpu.setZ(cpu.Y)
-	cpu.setN(cpu.Y)
+	cpu.setZN(cpu.Y)
 }
 
 // JMP - Jump
@@ -652,22 +620,19 @@ func (cpu *CPU) jsr(info *stepInfo) {
 // LDA - Load Accumulator
 func (cpu *CPU) lda(info *stepInfo) {
 	cpu.A = cpu.Read(info.address)
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // LDX - Load X Register
 func (cpu *CPU) ldx(info *stepInfo) {
 	cpu.X = cpu.Read(info.address)
-	cpu.setZ(cpu.X)
-	cpu.setN(cpu.X)
+	cpu.setZN(cpu.X)
 }
 
 // LDY - Load Y Register
 func (cpu *CPU) ldy(info *stepInfo) {
 	cpu.Y = cpu.Read(info.address)
-	cpu.setZ(cpu.Y)
-	cpu.setN(cpu.Y)
+	cpu.setZN(cpu.Y)
 }
 
 // LSR - Logical Shift Right
@@ -675,15 +640,13 @@ func (cpu *CPU) lsr(info *stepInfo) {
 	if info.mode == modeAccumulator {
 		cpu.C = cpu.A & 1
 		cpu.A >>= 1
-		cpu.setZ(cpu.A)
-		cpu.setN(cpu.A)
+		cpu.setZN(cpu.A)
 	} else {
 		value := cpu.Read(info.address)
 		cpu.C = value & 1
 		value >>= 1
 		cpu.Write(info.address, value)
-		cpu.setZ(value)
-		cpu.setN(value)
+		cpu.setZN(value)
 	}
 }
 
@@ -694,8 +657,7 @@ func (cpu *CPU) nop(info *stepInfo) {
 // ORA - Logical Inclusive OR
 func (cpu *CPU) ora(info *stepInfo) {
 	cpu.A = cpu.A | cpu.Read(info.address)
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // PHA - Push Accumulator
@@ -711,8 +673,7 @@ func (cpu *CPU) php(info *stepInfo) {
 // PLA - Pull Accumulator
 func (cpu *CPU) pla(info *stepInfo) {
 	cpu.A = cpu.pull()
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // PLP - Pull Processor Status
@@ -726,16 +687,14 @@ func (cpu *CPU) rol(info *stepInfo) {
 		c := cpu.C
 		cpu.C = (cpu.A >> 7) & 1
 		cpu.A = (cpu.A << 1) | c
-		cpu.setZ(cpu.A)
-		cpu.setN(cpu.A)
+		cpu.setZN(cpu.A)
 	} else {
 		c := cpu.C
 		value := cpu.Read(info.address)
 		cpu.C = (value >> 7) & 1
 		value = (value << 1) | c
 		cpu.Write(info.address, value)
-		cpu.setZ(value)
-		cpu.setN(value)
+		cpu.setZN(value)
 	}
 }
 
@@ -745,16 +704,14 @@ func (cpu *CPU) ror(info *stepInfo) {
 		c := cpu.C
 		cpu.C = cpu.A & 1
 		cpu.A = (cpu.A >> 1) | (c << 7)
-		cpu.setZ(cpu.A)
-		cpu.setN(cpu.A)
+		cpu.setZN(cpu.A)
 	} else {
 		c := cpu.C
 		value := cpu.Read(info.address)
 		cpu.C = value & 1
 		value = (value >> 1) | (c << 7)
 		cpu.Write(info.address, value)
-		cpu.setZ(value)
-		cpu.setN(value)
+		cpu.setZN(value)
 	}
 }
 
@@ -775,8 +732,7 @@ func (cpu *CPU) sbc(info *stepInfo) {
 	b := cpu.Read(info.address)
 	c := cpu.C
 	cpu.A = a - b - (1 - c)
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 	if int(a)-int(b)-int(1-c) >= 0 {
 		cpu.C = 1
 	} else {
@@ -822,29 +778,25 @@ func (cpu *CPU) sty(info *stepInfo) {
 // TAX - Transfer Accumulator to X
 func (cpu *CPU) tax(info *stepInfo) {
 	cpu.X = cpu.A
-	cpu.setZ(cpu.X)
-	cpu.setN(cpu.X)
+	cpu.setZN(cpu.X)
 }
 
 // TAY - Transfer Accumulator to Y
 func (cpu *CPU) tay(info *stepInfo) {
 	cpu.Y = cpu.A
-	cpu.setZ(cpu.Y)
-	cpu.setN(cpu.Y)
+	cpu.setZN(cpu.Y)
 }
 
 // TSX - Transfer Stack Pointer to X
 func (cpu *CPU) tsx(info *stepInfo) {
 	cpu.X = cpu.SP
-	cpu.setZ(cpu.X)
-	cpu.setN(cpu.X)
+	cpu.setZN(cpu.X)
 }
 
 // TXA - Transfer X to Accumulator
 func (cpu *CPU) txa(info *stepInfo) {
 	cpu.A = cpu.X
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // TXS - Transfer X to Stack Pointer
@@ -855,8 +807,7 @@ func (cpu *CPU) txs(info *stepInfo) {
 // TYA - Transfer Y to Accumulator
 func (cpu *CPU) tya(info *stepInfo) {
 	cpu.A = cpu.Y
-	cpu.setZ(cpu.A)
-	cpu.setN(cpu.A)
+	cpu.setZN(cpu.A)
 }
 
 // illegal opcodes below
