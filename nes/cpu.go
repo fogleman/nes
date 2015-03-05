@@ -3,6 +3,7 @@ package nes
 import (
 	"fmt"
 	"log"
+	"reflect"
 )
 
 // Addressing Modes
@@ -23,61 +24,26 @@ const (
 	ZERO_PAGE_Y
 )
 
-var InstructionNames = [256]string{
-	"BRK", "ORA", "???", "???", "???", "ORA", "ASL", "???",
-	"PHP", "ORA", "ASL", "???", "???", "ORA", "ASL", "???",
-	"BPL", "ORA", "???", "???", "???", "ORA", "ASL", "???",
-	"CLC", "ORA", "???", "???", "???", "ORA", "ASL", "???",
-	"JSR", "AND", "???", "???", "BIT", "AND", "ROL", "???",
-	"PLP", "AND", "ROL", "???", "BIT", "AND", "ROL", "???",
-	"BMI", "AND", "???", "???", "???", "AND", "ROL", "???",
-	"SEC", "AND", "???", "???", "???", "AND", "ROL", "???",
-	"RTI", "EOR", "???", "???", "???", "EOR", "LSR", "???",
-	"PHA", "EOR", "LSR", "???", "JMP", "EOR", "LSR", "???",
-	"BVC", "EOR", "???", "???", "???", "EOR", "LSR", "???",
-	"CLI", "EOR", "???", "???", "???", "EOR", "LSR", "???",
-	"RTS", "ADC", "???", "???", "???", "ADC", "ROR", "???",
-	"PLA", "ADC", "ROR", "???", "JMP", "ADC", "ROR", "???",
-	"BVS", "ADC", "???", "???", "???", "ADC", "ROR", "???",
-	"SEI", "ADC", "???", "???", "???", "ADC", "ROR", "???",
-	"???", "STA", "???", "???", "STY", "STA", "STX", "???",
-	"DEY", "???", "TXA", "???", "STY", "STA", "STX", "???",
-	"BCC", "STA", "???", "???", "STY", "STA", "STX", "???",
-	"TYA", "STA", "TXS", "???", "???", "STA", "???", "???",
-	"LDY", "LDA", "LDX", "???", "LDY", "LDA", "LDX", "???",
-	"TAY", "LDA", "TAX", "???", "LDY", "LDA", "LDX", "???",
-	"BCS", "LDA", "???", "???", "LDY", "LDA", "LDX", "???",
-	"CLV", "LDA", "TSX", "???", "LDY", "LDA", "LDX", "???",
-	"CPY", "CMP", "???", "???", "CPY", "CMP", "DEC", "???",
-	"INY", "CMP", "DEX", "???", "CPY", "CMP", "DEC", "???",
-	"BNE", "CMP", "???", "???", "???", "CMP", "DEC", "???",
-	"CLD", "CMP", "???", "???", "???", "CMP", "DEC", "???",
-	"CPX", "SBC", "???", "???", "CPX", "SBC", "INC", "???",
-	"INX", "SBC", "NOP", "???", "CPX", "SBC", "INC", "???",
-	"BEQ", "SBC", "???", "???", "???", "SBC", "INC", "???",
-	"SED", "SBC", "???", "???", "???", "SBC", "INC", "???",
-}
-
 var InstructionModes = [256]byte{
-	0x6, 0x7, 0x0, 0x0, 0x0, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x0, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
-	0x1, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x1, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
-	0x6, 0x7, 0x0, 0x0, 0x0, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x1, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
-	0x6, 0x7, 0x0, 0x0, 0x0, 0xb, 0xb, 0x0, 0x6, 0x5, 0x4, 0x0, 0x8, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
-	0x0, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x0, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0xc, 0xc, 0xd, 0x0, 0x6, 0x3, 0x6, 0x0, 0x0, 0x2, 0x0, 0x0,
-	0x5, 0x7, 0x5, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0xc, 0xc, 0xd, 0x0, 0x6, 0x3, 0x6, 0x0, 0x2, 0x2, 0x3, 0x0,
-	0x5, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
-	0x5, 0x7, 0x0, 0x0, 0xb, 0xb, 0xb, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
-	0xa, 0x9, 0x0, 0x0, 0x0, 0xc, 0xc, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x6, 0x7, 0x0, 0x0, 0x0, 0xB, 0xB, 0x0, 0x6, 0x5, 0x4, 0x0, 0x0, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0x0, 0xC, 0xC, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x1, 0x7, 0x0, 0x0, 0xB, 0xB, 0xB, 0x0, 0x6, 0x5, 0x4, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0x0, 0xC, 0xC, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x6, 0x7, 0x0, 0x0, 0x0, 0xB, 0xB, 0x0, 0x6, 0x5, 0x4, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0x0, 0xC, 0xC, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x6, 0x7, 0x0, 0x0, 0x0, 0xB, 0xB, 0x0, 0x6, 0x5, 0x4, 0x0, 0x8, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0x0, 0xC, 0xC, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x0, 0x7, 0x0, 0x0, 0xB, 0xB, 0xB, 0x0, 0x6, 0x0, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0xC, 0xC, 0xD, 0x0, 0x6, 0x3, 0x6, 0x0, 0x0, 0x2, 0x0, 0x0,
+	0x5, 0x7, 0x5, 0x0, 0xB, 0xB, 0xB, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0xC, 0xC, 0xD, 0x0, 0x6, 0x3, 0x6, 0x0, 0x2, 0x2, 0x3, 0x0,
+	0x5, 0x7, 0x0, 0x0, 0xB, 0xB, 0xB, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0x0, 0xC, 0xC, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
+	0x5, 0x7, 0x0, 0x0, 0xB, 0xB, 0xB, 0x0, 0x6, 0x5, 0x6, 0x0, 0x1, 0x1, 0x1, 0x0,
+	0xA, 0x9, 0x0, 0x0, 0x0, 0xC, 0xC, 0x0, 0x6, 0x3, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0,
 }
 
-var InstructionBytes = [256]byte{
+var InstructionSizes = [256]byte{
 	1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,
 	2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,
 	3, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,
@@ -115,7 +81,42 @@ var InstructionCycles = [256]byte{
 	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,
 }
 
-func PageCrossed(a, b uint16) bool {
+var InstructionNames = [256]string{
+	"BRK", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
+	"PHP", "ORA", "ASL", "UNK", "UNK", "ORA", "ASL", "UNK",
+	"BPL", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
+	"CLC", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
+	"JSR", "AND", "UNK", "UNK", "BIT", "AND", "ROL", "UNK",
+	"PLP", "AND", "ROL", "UNK", "BIT", "AND", "ROL", "UNK",
+	"BMI", "AND", "UNK", "UNK", "UNK", "AND", "ROL", "UNK",
+	"SEC", "AND", "UNK", "UNK", "UNK", "AND", "ROL", "UNK",
+	"RTI", "EOR", "UNK", "UNK", "UNK", "EOR", "LSR", "UNK",
+	"PHA", "EOR", "LSR", "UNK", "JMP", "EOR", "LSR", "UNK",
+	"BVC", "EOR", "UNK", "UNK", "UNK", "EOR", "LSR", "UNK",
+	"CLI", "EOR", "UNK", "UNK", "UNK", "EOR", "LSR", "UNK",
+	"RTS", "ADC", "UNK", "UNK", "UNK", "ADC", "ROR", "UNK",
+	"PLA", "ADC", "ROR", "UNK", "JMP", "ADC", "ROR", "UNK",
+	"BVS", "ADC", "UNK", "UNK", "UNK", "ADC", "ROR", "UNK",
+	"SEI", "ADC", "UNK", "UNK", "UNK", "ADC", "ROR", "UNK",
+	"UNK", "STA", "UNK", "UNK", "STY", "STA", "STX", "UNK",
+	"DEY", "UNK", "TXA", "UNK", "STY", "STA", "STX", "UNK",
+	"BCC", "STA", "UNK", "UNK", "STY", "STA", "STX", "UNK",
+	"TYA", "STA", "TXS", "UNK", "UNK", "STA", "UNK", "UNK",
+	"LDY", "LDA", "LDX", "UNK", "LDY", "LDA", "LDX", "UNK",
+	"TAY", "LDA", "TAX", "UNK", "LDY", "LDA", "LDX", "UNK",
+	"BCS", "LDA", "UNK", "UNK", "LDY", "LDA", "LDX", "UNK",
+	"CLV", "LDA", "TSX", "UNK", "LDY", "LDA", "LDX", "UNK",
+	"CPY", "CMP", "UNK", "UNK", "CPY", "CMP", "DEC", "UNK",
+	"INY", "CMP", "DEX", "UNK", "CPY", "CMP", "DEC", "UNK",
+	"BNE", "CMP", "UNK", "UNK", "UNK", "CMP", "DEC", "UNK",
+	"CLD", "CMP", "UNK", "UNK", "UNK", "CMP", "DEC", "UNK",
+	"CPX", "SBC", "UNK", "UNK", "CPX", "SBC", "INC", "UNK",
+	"INX", "SBC", "NOP", "UNK", "CPX", "SBC", "INC", "UNK",
+	"BEQ", "SBC", "UNK", "UNK", "UNK", "SBC", "INC", "UNK",
+	"SED", "SBC", "UNK", "UNK", "UNK", "SBC", "INC", "UNK",
+}
+
+func PagesDiffer(a, b uint16) bool {
 	return a&0xFF00 != b&0xFF00
 }
 
@@ -133,57 +134,54 @@ type CPU struct {
 	I      byte   // interrupt disable flag
 	D      byte   // decimal mode flag
 	B      byte   // break command flag
+	U      byte   // unused flag
 	V      byte   // overflow flag
 	N      byte   // negative flag
 }
 
 func NewCPU(memory Memory) *CPU {
 	cpu := CPU{Memory: memory}
-	cpu.Table = [256]func(uint16){
-		cpu.BRK, cpu.ORA, cpu.UNK, cpu.UNK, cpu.UNK, cpu.ORA, cpu.ASL, cpu.UNK,
-		cpu.PHP, cpu.ORA, cpu.ASL, cpu.UNK, cpu.UNK, cpu.ORA, cpu.ASL, cpu.UNK,
-		cpu.BPL, cpu.ORA, cpu.UNK, cpu.UNK, cpu.UNK, cpu.ORA, cpu.ASL, cpu.UNK,
-		cpu.CLC, cpu.ORA, cpu.UNK, cpu.UNK, cpu.UNK, cpu.ORA, cpu.ASL, cpu.UNK,
-		cpu.JSR, cpu.AND, cpu.UNK, cpu.UNK, cpu.BIT, cpu.AND, cpu.ROL, cpu.UNK,
-		cpu.PLP, cpu.AND, cpu.ROL, cpu.UNK, cpu.BIT, cpu.AND, cpu.ROL, cpu.UNK,
-		cpu.BMI, cpu.AND, cpu.UNK, cpu.UNK, cpu.UNK, cpu.AND, cpu.ROL, cpu.UNK,
-		cpu.SEC, cpu.AND, cpu.UNK, cpu.UNK, cpu.UNK, cpu.AND, cpu.ROL, cpu.UNK,
-		cpu.RTI, cpu.EOR, cpu.UNK, cpu.UNK, cpu.UNK, cpu.EOR, cpu.LSR, cpu.UNK,
-		cpu.PHA, cpu.EOR, cpu.LSR, cpu.UNK, cpu.JMP, cpu.EOR, cpu.LSR, cpu.UNK,
-		cpu.BVC, cpu.EOR, cpu.UNK, cpu.UNK, cpu.UNK, cpu.EOR, cpu.LSR, cpu.UNK,
-		cpu.CLI, cpu.EOR, cpu.UNK, cpu.UNK, cpu.UNK, cpu.EOR, cpu.LSR, cpu.UNK,
-		cpu.RTS, cpu.ADC, cpu.UNK, cpu.UNK, cpu.UNK, cpu.ADC, cpu.ROR, cpu.UNK,
-		cpu.PLA, cpu.ADC, cpu.ROR, cpu.UNK, cpu.JMP, cpu.ADC, cpu.ROR, cpu.UNK,
-		cpu.BVS, cpu.ADC, cpu.UNK, cpu.UNK, cpu.UNK, cpu.ADC, cpu.ROR, cpu.UNK,
-		cpu.SEI, cpu.ADC, cpu.UNK, cpu.UNK, cpu.UNK, cpu.ADC, cpu.ROR, cpu.UNK,
-		cpu.UNK, cpu.STA, cpu.UNK, cpu.UNK, cpu.STY, cpu.STA, cpu.STX, cpu.UNK,
-		cpu.DEY, cpu.UNK, cpu.TXA, cpu.UNK, cpu.STY, cpu.STA, cpu.STX, cpu.UNK,
-		cpu.BCC, cpu.STA, cpu.UNK, cpu.UNK, cpu.STY, cpu.STA, cpu.STX, cpu.UNK,
-		cpu.TYA, cpu.STA, cpu.TXS, cpu.UNK, cpu.UNK, cpu.STA, cpu.UNK, cpu.UNK,
-		cpu.LDY, cpu.LDA, cpu.LDX, cpu.UNK, cpu.LDY, cpu.LDA, cpu.LDX, cpu.UNK,
-		cpu.TAY, cpu.LDA, cpu.TAX, cpu.UNK, cpu.LDY, cpu.LDA, cpu.LDX, cpu.UNK,
-		cpu.BCS, cpu.LDA, cpu.UNK, cpu.UNK, cpu.LDY, cpu.LDA, cpu.LDX, cpu.UNK,
-		cpu.CLV, cpu.LDA, cpu.TSX, cpu.UNK, cpu.LDY, cpu.LDA, cpu.LDX, cpu.UNK,
-		cpu.CPY, cpu.CMP, cpu.UNK, cpu.UNK, cpu.CPY, cpu.CMP, cpu.DEC, cpu.UNK,
-		cpu.INY, cpu.CMP, cpu.DEX, cpu.UNK, cpu.CPY, cpu.CMP, cpu.DEC, cpu.UNK,
-		cpu.BNE, cpu.CMP, cpu.UNK, cpu.UNK, cpu.UNK, cpu.CMP, cpu.DEC, cpu.UNK,
-		cpu.CLD, cpu.CMP, cpu.UNK, cpu.UNK, cpu.UNK, cpu.CMP, cpu.DEC, cpu.UNK,
-		cpu.CPX, cpu.SBC, cpu.UNK, cpu.UNK, cpu.CPX, cpu.SBC, cpu.INC, cpu.UNK,
-		cpu.INX, cpu.SBC, cpu.NOP, cpu.UNK, cpu.CPX, cpu.SBC, cpu.INC, cpu.UNK,
-		cpu.BEQ, cpu.SBC, cpu.UNK, cpu.UNK, cpu.UNK, cpu.SBC, cpu.INC, cpu.UNK,
-		cpu.SED, cpu.SBC, cpu.UNK, cpu.UNK, cpu.UNK, cpu.SBC, cpu.INC, cpu.UNK,
+	for i := 0; i < 256; i++ {
+		x := reflect.ValueOf(&cpu).MethodByName(InstructionNames[i]).Interface()
+		if method, ok := x.(func(uint16)); ok {
+			cpu.Table[i] = method
+		}
 	}
 	cpu.Reset()
 	return &cpu
 }
 
 func (cpu *CPU) Reset() {
-	fmt.Printf("%T\n", cpu.ADC)
 	cpu.Cycles = 0
 	// cpu.PC = cpu.Read16(0xFFFC)
 	cpu.PC = 0xC000
 	cpu.SP = 0xFD
 	cpu.SetFlags(0x24)
+}
+
+// Stack Functions
+
+func (cpu *CPU) Push(value byte) {
+	cpu.Write(0x100|uint16(cpu.SP), value)
+	cpu.SP--
+}
+
+func (cpu *CPU) Pull() byte {
+	cpu.SP++
+	return cpu.Read(0x100 | uint16(cpu.SP))
+}
+
+func (cpu *CPU) Push16(value uint16) {
+	hi := byte(value >> 8)
+	lo := byte(value & 0xFF)
+	cpu.Push(hi)
+	cpu.Push(lo)
+}
+
+func (cpu *CPU) Pull16() uint16 {
+	lo := uint16(cpu.Pull())
+	hi := uint16(cpu.Pull())
+	return hi<<8 | lo
 }
 
 // Flag Functions
@@ -195,7 +193,7 @@ func (cpu *CPU) Flags() byte {
 	flags |= cpu.I << 2
 	flags |= cpu.D << 3
 	flags |= cpu.B << 4
-	flags |= 1 << 5
+	flags |= cpu.U << 5
 	flags |= cpu.V << 6
 	flags |= cpu.N << 7
 	return flags
@@ -207,6 +205,7 @@ func (cpu *CPU) SetFlags(flags byte) {
 	cpu.I = (flags >> 2) & 1
 	cpu.D = (flags >> 3) & 1
 	cpu.B = (flags >> 4) & 1
+	cpu.U = (flags >> 5) & 1
 	cpu.V = (flags >> 6) & 1
 	cpu.N = (flags >> 7) & 1
 }
@@ -231,7 +230,7 @@ func (cpu *CPU) SetN(value byte) {
 
 func (cpu *CPU) PrintInstruction() {
 	opcode := cpu.Read(cpu.PC)
-	bytes := InstructionBytes[opcode]
+	bytes := InstructionSizes[opcode]
 	name := InstructionNames[opcode]
 	w0 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+0))
 	w1 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+1))
@@ -243,10 +242,10 @@ func (cpu *CPU) PrintInstruction() {
 		w2 = "  "
 	}
 	fmt.Printf(
-		"%4X  %s %s %s  %s %27s"+
+		"%4X  %s %s %s  %s %28s"+
 			"A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n",
 		cpu.PC, w0, w1, w2, name, "",
-		cpu.A, cpu.X, cpu.Y, cpu.Flags(), cpu.SP, cpu.Cycles*3)
+		cpu.A, cpu.X, cpu.Y, cpu.Flags(), cpu.SP, (cpu.Cycles*3)%341)
 }
 
 func (cpu *CPU) Step() {
@@ -262,10 +261,10 @@ func (cpu *CPU) Step() {
 		address = cpu.Read16(cpu.PC + 1)
 	case ABSOLUTE_X:
 		address = cpu.Read16(cpu.PC+1) + uint16(cpu.X)
-		// pageCrossed = PageCrossed(address-uint16(cpu.X), address)
+		// pageCrossed = PagesDiffer(address-uint16(cpu.X), address)
 	case ABSOLUTE_Y:
 		address = cpu.Read16(cpu.PC+1) + uint16(cpu.Y)
-		// pageCrossed = PageCrossed(address-uint16(cpu.Y), address)
+		// pageCrossed = PagesDiffer(address-uint16(cpu.Y), address)
 	case ACCUMULATOR:
 		break
 	case IMMEDIATE:
@@ -282,7 +281,7 @@ func (cpu *CPU) Step() {
 		address = uint16(hi)<<8 | uint16(lo)
 	case INDIRECT_INDEXED:
 		address = cpu.Read16(uint16(cpu.Read(cpu.PC+1))) + uint16(cpu.Y)
-		// pageCrossed = PageCrossed(address-uint16(cpu.Y), address)
+		// pageCrossed = PagesDiffer(address-uint16(cpu.Y), address)
 	case RELATIVE:
 		offset := uint16(cpu.Read(cpu.PC + 1))
 		if offset < 0x80 {
@@ -298,7 +297,7 @@ func (cpu *CPU) Step() {
 		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
 	}
 
-	cpu.PC += uint16(InstructionBytes[opcode])
+	cpu.PC += uint16(InstructionSizes[opcode])
 	cpu.Cycles += uint64(InstructionCycles[opcode])
 
 	cpu.Table[opcode](address)
@@ -310,7 +309,9 @@ func (cpu *CPU) ADC(address uint16) {
 }
 
 func (cpu *CPU) AND(address uint16) {
-	log.Fatalln("Unimplemented instruction: AND")
+	cpu.A = cpu.A & cpu.Read(address)
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
 }
 
 func (cpu *CPU) ASL(address uint16) {
@@ -318,31 +319,52 @@ func (cpu *CPU) ASL(address uint16) {
 }
 
 func (cpu *CPU) BCC(address uint16) {
-	log.Fatalln("Unimplemented instruction: BCC")
+	if cpu.C == 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BCS(address uint16) {
-	log.Fatalln("Unimplemented instruction: BCS")
+	if cpu.C != 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BEQ(address uint16) {
-	log.Fatalln("Unimplemented instruction: BEQ")
+	if cpu.Z != 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BIT(address uint16) {
-	log.Fatalln("Unimplemented instruction: BIT")
+	value := cpu.Read(address)
+	cpu.V = (value >> 6) & 1
+	cpu.SetZ(value & cpu.A)
+	cpu.SetN(value)
 }
 
 func (cpu *CPU) BMI(address uint16) {
-	log.Fatalln("Unimplemented instruction: BMI")
+	if cpu.N != 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BNE(address uint16) {
-	log.Fatalln("Unimplemented instruction: BNE")
+	if cpu.Z == 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BPL(address uint16) {
-	log.Fatalln("Unimplemented instruction: BPL")
+	if cpu.N == 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BRK(address uint16) {
@@ -350,15 +372,21 @@ func (cpu *CPU) BRK(address uint16) {
 }
 
 func (cpu *CPU) BVC(address uint16) {
-	log.Fatalln("Unimplemented instruction: BVC")
+	if cpu.V == 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) BVS(address uint16) {
-	log.Fatalln("Unimplemented instruction: BVS")
+	if cpu.V != 0 {
+		cpu.PC = address
+		cpu.Cycles++
+	}
 }
 
 func (cpu *CPU) CLC(address uint16) {
-	log.Fatalln("Unimplemented instruction: CLC")
+	cpu.C = 0
 }
 
 func (cpu *CPU) CLD(address uint16) {
@@ -366,15 +394,22 @@ func (cpu *CPU) CLD(address uint16) {
 }
 
 func (cpu *CPU) CLI(address uint16) {
-	log.Fatalln("Unimplemented instruction: CLI")
+	cpu.I = 0
 }
 
 func (cpu *CPU) CLV(address uint16) {
-	log.Fatalln("Unimplemented instruction: CLV")
+	cpu.V = 0
 }
 
 func (cpu *CPU) CMP(address uint16) {
-	log.Fatalln("Unimplemented instruction: CMP")
+	value := cpu.A - cpu.Read(address)
+	if value >= 0 {
+		cpu.C = 1
+	} else {
+		cpu.C = 0
+	}
+	cpu.SetZ(value)
+	cpu.SetN(value)
 }
 
 func (cpu *CPU) CPX(address uint16) {
@@ -398,7 +433,9 @@ func (cpu *CPU) DEY(address uint16) {
 }
 
 func (cpu *CPU) EOR(address uint16) {
-	log.Fatalln("Unimplemented instruction: EOR")
+	cpu.A = cpu.A ^ cpu.Read(address)
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
 }
 
 func (cpu *CPU) INC(address uint16) {
@@ -418,7 +455,8 @@ func (cpu *CPU) JMP(address uint16) {
 }
 
 func (cpu *CPU) JSR(address uint16) {
-	log.Fatalln("Unimplemented instruction: JSR")
+	cpu.Push16(cpu.PC - 1)
+	cpu.PC = address
 }
 
 func (cpu *CPU) LDA(address uint16) {
@@ -444,27 +482,30 @@ func (cpu *CPU) LSR(address uint16) {
 }
 
 func (cpu *CPU) NOP(address uint16) {
-	log.Fatalln("Unimplemented instruction: NOP")
 }
 
 func (cpu *CPU) ORA(address uint16) {
-	log.Fatalln("Unimplemented instruction: ORA")
+	cpu.A = cpu.A | cpu.Read(address)
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
 }
 
 func (cpu *CPU) PHA(address uint16) {
-	log.Fatalln("Unimplemented instruction: PHA")
+	cpu.Push(cpu.A)
 }
 
 func (cpu *CPU) PHP(address uint16) {
-	log.Fatalln("Unimplemented instruction: PHP")
+	cpu.Push(cpu.Flags() | 0x10)
 }
 
 func (cpu *CPU) PLA(address uint16) {
-	log.Fatalln("Unimplemented instruction: PLA")
+	cpu.A = cpu.Pull()
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
 }
 
 func (cpu *CPU) PLP(address uint16) {
-	log.Fatalln("Unimplemented instruction: PLP")
+	cpu.SetFlags(cpu.Pull()&0xEF | 0x20)
 }
 
 func (cpu *CPU) ROL(address uint16) {
@@ -480,7 +521,7 @@ func (cpu *CPU) RTI(address uint16) {
 }
 
 func (cpu *CPU) RTS(address uint16) {
-	log.Fatalln("Unimplemented instruction: RTS")
+	cpu.PC = cpu.Pull16() + 1
 }
 
 func (cpu *CPU) SBC(address uint16) {
@@ -488,11 +529,11 @@ func (cpu *CPU) SBC(address uint16) {
 }
 
 func (cpu *CPU) SEC(address uint16) {
-	log.Fatalln("Unimplemented instruction: SEC")
+	cpu.C = 1
 }
 
 func (cpu *CPU) SED(address uint16) {
-	log.Fatalln("Unimplemented instruction: SED")
+	cpu.D = 1
 }
 
 func (cpu *CPU) SEI(address uint16) {
@@ -500,7 +541,7 @@ func (cpu *CPU) SEI(address uint16) {
 }
 
 func (cpu *CPU) STA(address uint16) {
-	log.Fatalln("Unimplemented instruction: STA")
+	cpu.Write(address, cpu.A)
 }
 
 func (cpu *CPU) STX(address uint16) {

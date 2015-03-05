@@ -11,7 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	for i := 0; i < 10; i++ {
+	for {
 		nes.CPU.Step()
 	}
 }
