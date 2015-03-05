@@ -208,8 +208,7 @@ func (c *CPU) createTable() {
 // Reset resets the CPU to its initial powerup state
 func (cpu *CPU) Reset() {
 	cpu.Cycles = 0
-	// cpu.PC = cpu.Read16(0xFFFC)
-	cpu.PC = 0xC000
+	cpu.PC = cpu.Read16(0xFFFC)
 	cpu.SP = 0xFD
 	cpu.SetFlags(0x24)
 }

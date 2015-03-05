@@ -75,6 +75,7 @@ func LoadNESFile(path string) (*Cartridge, error) {
 	}
 
 	// success
-	cartridge := Cartridge{prg, chr, mapper, mirror, battery}
+	sram := make([]byte, 8192)
+	cartridge := Cartridge{prg, chr, sram, mapper, mirror, battery}
 	return &cartridge, nil
 }
