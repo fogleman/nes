@@ -56,6 +56,19 @@ func setTexture(texture uint32, im *image.RGBA, offset int) {
 		0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix[offset:]))
 }
 
+func drawQuad() {
+	gl.Begin(gl.QUADS)
+	gl.TexCoord2f(0, 1)
+	gl.Vertex3f(-1, -1, 1)
+	gl.TexCoord2f(1, 1)
+	gl.Vertex3f(1, -1, 1)
+	gl.TexCoord2f(1, 0)
+	gl.Vertex3f(1, 1, 1)
+	gl.TexCoord2f(0, 0)
+	gl.Vertex3f(-1, 1, 1)
+	gl.End()
+}
+
 func Run() {
 	err := glfw.Init()
 	if err != nil {
@@ -87,18 +100,9 @@ func Run() {
 
 	frame := 0
 	for !window.ShouldClose() {
-		setTexture(texture, im, (frame*4)%1024)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
-		gl.Begin(gl.QUADS)
-		gl.TexCoord2f(0, 1)
-		gl.Vertex3f(-1, -1, 1)
-		gl.TexCoord2f(1, 1)
-		gl.Vertex3f(1, -1, 1)
-		gl.TexCoord2f(1, 0)
-		gl.Vertex3f(1, 1, 1)
-		gl.TexCoord2f(0, 0)
-		gl.Vertex3f(-1, 1, 1)
-		gl.End()
+		setTexture(texture, im, (frame*4)%1024)
+		drawQuad()
 		window.SwapBuffers()
 		glfw.PollEvents()
 		frame++
