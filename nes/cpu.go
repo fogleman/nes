@@ -25,22 +25,22 @@ const (
 
 // instructionModes indicates the addressing mode for each instruction
 var instructionModes = [256]byte{
-	6, 7, 0, 0, 0, 11, 11, 0, 6, 5, 4, 0, 0, 1, 1, 0,
-	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
-	1, 7, 0, 0, 11, 11, 11, 0, 6, 5, 4, 0, 1, 1, 1, 0,
-	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
-	6, 7, 0, 0, 0, 11, 11, 0, 6, 5, 4, 0, 1, 1, 1, 0,
-	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
-	6, 7, 0, 0, 0, 11, 11, 0, 6, 5, 4, 0, 8, 1, 1, 0,
-	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
-	0, 7, 0, 0, 11, 11, 11, 0, 6, 0, 6, 0, 1, 1, 1, 0,
-	10, 9, 0, 0, 12, 12, 13, 0, 6, 3, 6, 0, 0, 2, 0, 0,
-	5, 7, 5, 0, 11, 11, 11, 0, 6, 5, 6, 0, 1, 1, 1, 0,
-	10, 9, 0, 0, 12, 12, 13, 0, 6, 3, 6, 0, 2, 2, 3, 0,
-	5, 7, 0, 0, 11, 11, 11, 0, 6, 5, 6, 0, 1, 1, 1, 0,
-	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
-	5, 7, 0, 0, 11, 11, 11, 0, 6, 5, 6, 0, 1, 1, 1, 0,
-	10, 9, 0, 0, 0, 12, 12, 0, 6, 3, 0, 0, 0, 2, 2, 0,
+	6, 7, 6, 7, 11, 11, 11, 11, 6, 5, 4, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 12, 12, 6, 3, 6, 3, 2, 2, 2, 2,
+	1, 7, 6, 7, 11, 11, 11, 11, 6, 5, 4, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 12, 12, 6, 3, 6, 3, 2, 2, 2, 2,
+	6, 7, 6, 7, 11, 11, 11, 11, 6, 5, 4, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 12, 12, 6, 3, 6, 3, 2, 2, 2, 2,
+	6, 7, 6, 7, 11, 11, 11, 11, 6, 5, 4, 5, 8, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 12, 12, 6, 3, 6, 3, 2, 2, 2, 2,
+	5, 7, 5, 7, 11, 11, 11, 11, 6, 5, 6, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 13, 13, 6, 3, 6, 3, 2, 2, 3, 3,
+	5, 7, 5, 7, 11, 11, 11, 11, 6, 5, 6, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 13, 13, 6, 3, 6, 3, 2, 2, 3, 3,
+	5, 7, 5, 7, 11, 11, 11, 11, 6, 5, 6, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 12, 12, 6, 3, 6, 3, 2, 2, 2, 2,
+	5, 7, 5, 7, 11, 11, 11, 11, 6, 5, 6, 5, 1, 1, 1, 1,
+	10, 9, 6, 9, 12, 12, 12, 12, 6, 3, 6, 3, 2, 2, 2, 2,
 }
 
 // instructionSizes indicates the size of each instruction in bytes
@@ -80,7 +80,7 @@ var instructionCycles = [256]byte{
 	2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
 	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
 	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	2, 6, 3, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
 	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
 }
 
@@ -88,57 +88,57 @@ var instructionCycles = [256]byte{
 // instruction when a page is crossed
 var instructionPageCycles = [256]byte{
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 }
 
 // instructionNames indicates the name of each instruction
 var instructionNames = [256]string{
-	"BRK", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
-	"PHP", "ORA", "ASL", "UNK", "UNK", "ORA", "ASL", "UNK",
-	"BPL", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
-	"CLC", "ORA", "UNK", "UNK", "UNK", "ORA", "ASL", "UNK",
-	"JSR", "AND", "UNK", "UNK", "BIT", "AND", "ROL", "UNK",
-	"PLP", "AND", "ROL", "UNK", "BIT", "AND", "ROL", "UNK",
-	"BMI", "AND", "UNK", "UNK", "UNK", "AND", "ROL", "UNK",
-	"SEC", "AND", "UNK", "UNK", "UNK", "AND", "ROL", "UNK",
-	"RTI", "EOR", "UNK", "UNK", "UNK", "EOR", "LSR", "UNK",
-	"PHA", "EOR", "LSR", "UNK", "JMP", "EOR", "LSR", "UNK",
-	"BVC", "EOR", "UNK", "UNK", "UNK", "EOR", "LSR", "UNK",
-	"CLI", "EOR", "UNK", "UNK", "UNK", "EOR", "LSR", "UNK",
-	"RTS", "ADC", "UNK", "UNK", "UNK", "ADC", "ROR", "UNK",
-	"PLA", "ADC", "ROR", "UNK", "JMP", "ADC", "ROR", "UNK",
-	"BVS", "ADC", "UNK", "UNK", "UNK", "ADC", "ROR", "UNK",
-	"SEI", "ADC", "UNK", "UNK", "UNK", "ADC", "ROR", "UNK",
-	"UNK", "STA", "UNK", "UNK", "STY", "STA", "STX", "UNK",
-	"DEY", "UNK", "TXA", "UNK", "STY", "STA", "STX", "UNK",
-	"BCC", "STA", "UNK", "UNK", "STY", "STA", "STX", "UNK",
-	"TYA", "STA", "TXS", "UNK", "UNK", "STA", "UNK", "UNK",
-	"LDY", "LDA", "LDX", "UNK", "LDY", "LDA", "LDX", "UNK",
-	"TAY", "LDA", "TAX", "UNK", "LDY", "LDA", "LDX", "UNK",
-	"BCS", "LDA", "UNK", "UNK", "LDY", "LDA", "LDX", "UNK",
-	"CLV", "LDA", "TSX", "UNK", "LDY", "LDA", "LDX", "UNK",
-	"CPY", "CMP", "UNK", "UNK", "CPY", "CMP", "DEC", "UNK",
-	"INY", "CMP", "DEX", "UNK", "CPY", "CMP", "DEC", "UNK",
-	"BNE", "CMP", "UNK", "UNK", "UNK", "CMP", "DEC", "UNK",
-	"CLD", "CMP", "UNK", "UNK", "UNK", "CMP", "DEC", "UNK",
-	"CPX", "SBC", "UNK", "UNK", "CPX", "SBC", "INC", "UNK",
-	"INX", "SBC", "NOP", "UNK", "CPX", "SBC", "INC", "UNK",
-	"BEQ", "SBC", "UNK", "UNK", "UNK", "SBC", "INC", "UNK",
-	"SED", "SBC", "UNK", "UNK", "UNK", "SBC", "INC", "UNK",
+	"BRK", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"PHP", "ORA", "ASL", "ANC", "NOP", "ORA", "ASL", "SLO",
+	"BPL", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"CLC", "ORA", "NOP", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"JSR", "AND", "KIL", "RLA", "BIT", "AND", "ROL", "RLA",
+	"PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA",
+	"BMI", "AND", "KIL", "RLA", "NOP", "AND", "ROL", "RLA",
+	"SEC", "AND", "NOP", "RLA", "NOP", "AND", "ROL", "RLA",
+	"RTI", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
+	"BVC", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"CLI", "EOR", "NOP", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"RTS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"PLA", "ADC", "ROR", "ARR", "JMP", "ADC", "ROR", "RRA",
+	"BVS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"NOP", "STA", "NOP", "SAX", "STY", "STA", "STX", "SAX",
+	"DEY", "NOP", "TXA", "XAA", "STY", "STA", "STX", "SAX",
+	"BCC", "STA", "KIL", "AHX", "STY", "STA", "STX", "SAX",
+	"TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "AHX",
+	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX",
+	"TAY", "LDA", "TAX", "LAX", "LDY", "LDA", "LDX", "LAX",
+	"BCS", "LDA", "KIL", "LAX", "LDY", "LDA", "LDX", "LAX",
+	"CLV", "LDA", "TSX", "LAS", "LDY", "LDA", "LDX", "LAX",
+	"CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP",
+	"INY", "CMP", "DEX", "AXS", "CPY", "CMP", "DEC", "DCP",
+	"BNE", "CMP", "KIL", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CLD", "CMP", "NOP", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CPX", "SBC", "NOP", "ISC", "CPX", "SBC", "INC", "ISC",
+	"INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISC",
+	"BEQ", "SBC", "KIL", "ISC", "NOP", "SBC", "INC", "ISC",
+	"SED", "SBC", "NOP", "ISC", "NOP", "SBC", "INC", "ISC",
 }
 
 type CPU struct {
@@ -170,38 +170,38 @@ func NewCPU(memory Memory) *CPU {
 // createTable builds a function table for each instruction
 func (c *CPU) createTable() {
 	c.table = [256]func(*stepInfo){
-		c.brk, c.ora, c.unk, c.unk, c.unk, c.ora, c.asl, c.unk,
-		c.php, c.ora, c.asl, c.unk, c.unk, c.ora, c.asl, c.unk,
-		c.bpl, c.ora, c.unk, c.unk, c.unk, c.ora, c.asl, c.unk,
-		c.clc, c.ora, c.unk, c.unk, c.unk, c.ora, c.asl, c.unk,
-		c.jsr, c.and, c.unk, c.unk, c.bit, c.and, c.rol, c.unk,
-		c.plp, c.and, c.rol, c.unk, c.bit, c.and, c.rol, c.unk,
-		c.bmi, c.and, c.unk, c.unk, c.unk, c.and, c.rol, c.unk,
-		c.sec, c.and, c.unk, c.unk, c.unk, c.and, c.rol, c.unk,
-		c.rti, c.eor, c.unk, c.unk, c.unk, c.eor, c.lsr, c.unk,
-		c.pha, c.eor, c.lsr, c.unk, c.jmp, c.eor, c.lsr, c.unk,
-		c.bvc, c.eor, c.unk, c.unk, c.unk, c.eor, c.lsr, c.unk,
-		c.cli, c.eor, c.unk, c.unk, c.unk, c.eor, c.lsr, c.unk,
-		c.rts, c.adc, c.unk, c.unk, c.unk, c.adc, c.ror, c.unk,
-		c.pla, c.adc, c.ror, c.unk, c.jmp, c.adc, c.ror, c.unk,
-		c.bvs, c.adc, c.unk, c.unk, c.unk, c.adc, c.ror, c.unk,
-		c.sei, c.adc, c.unk, c.unk, c.unk, c.adc, c.ror, c.unk,
-		c.unk, c.sta, c.unk, c.unk, c.sty, c.sta, c.stx, c.unk,
-		c.dey, c.unk, c.txa, c.unk, c.sty, c.sta, c.stx, c.unk,
-		c.bcc, c.sta, c.unk, c.unk, c.sty, c.sta, c.stx, c.unk,
-		c.tya, c.sta, c.txs, c.unk, c.unk, c.sta, c.unk, c.unk,
-		c.ldy, c.lda, c.ldx, c.unk, c.ldy, c.lda, c.ldx, c.unk,
-		c.tay, c.lda, c.tax, c.unk, c.ldy, c.lda, c.ldx, c.unk,
-		c.bcs, c.lda, c.unk, c.unk, c.ldy, c.lda, c.ldx, c.unk,
-		c.clv, c.lda, c.tsx, c.unk, c.ldy, c.lda, c.ldx, c.unk,
-		c.cpy, c.cmp, c.unk, c.unk, c.cpy, c.cmp, c.dec, c.unk,
-		c.iny, c.cmp, c.dex, c.unk, c.cpy, c.cmp, c.dec, c.unk,
-		c.bne, c.cmp, c.unk, c.unk, c.unk, c.cmp, c.dec, c.unk,
-		c.cld, c.cmp, c.unk, c.unk, c.unk, c.cmp, c.dec, c.unk,
-		c.cpx, c.sbc, c.unk, c.unk, c.cpx, c.sbc, c.inc, c.unk,
-		c.inx, c.sbc, c.nop, c.unk, c.cpx, c.sbc, c.inc, c.unk,
-		c.beq, c.sbc, c.unk, c.unk, c.unk, c.sbc, c.inc, c.unk,
-		c.sed, c.sbc, c.unk, c.unk, c.unk, c.sbc, c.inc, c.unk,
+		c.brk, c.ora, c.kil, c.slo, c.nop, c.ora, c.asl, c.slo,
+		c.php, c.ora, c.asl, c.anc, c.nop, c.ora, c.asl, c.slo,
+		c.bpl, c.ora, c.kil, c.slo, c.nop, c.ora, c.asl, c.slo,
+		c.clc, c.ora, c.nop, c.slo, c.nop, c.ora, c.asl, c.slo,
+		c.jsr, c.and, c.kil, c.rla, c.bit, c.and, c.rol, c.rla,
+		c.plp, c.and, c.rol, c.anc, c.bit, c.and, c.rol, c.rla,
+		c.bmi, c.and, c.kil, c.rla, c.nop, c.and, c.rol, c.rla,
+		c.sec, c.and, c.nop, c.rla, c.nop, c.and, c.rol, c.rla,
+		c.rti, c.eor, c.kil, c.sre, c.nop, c.eor, c.lsr, c.sre,
+		c.pha, c.eor, c.lsr, c.alr, c.jmp, c.eor, c.lsr, c.sre,
+		c.bvc, c.eor, c.kil, c.sre, c.nop, c.eor, c.lsr, c.sre,
+		c.cli, c.eor, c.nop, c.sre, c.nop, c.eor, c.lsr, c.sre,
+		c.rts, c.adc, c.kil, c.rra, c.nop, c.adc, c.ror, c.rra,
+		c.pla, c.adc, c.ror, c.arr, c.jmp, c.adc, c.ror, c.rra,
+		c.bvs, c.adc, c.kil, c.rra, c.nop, c.adc, c.ror, c.rra,
+		c.sei, c.adc, c.nop, c.rra, c.nop, c.adc, c.ror, c.rra,
+		c.nop, c.sta, c.nop, c.sax, c.sty, c.sta, c.stx, c.sax,
+		c.dey, c.nop, c.txa, c.xaa, c.sty, c.sta, c.stx, c.sax,
+		c.bcc, c.sta, c.kil, c.ahx, c.sty, c.sta, c.stx, c.sax,
+		c.tya, c.sta, c.txs, c.tas, c.shy, c.sta, c.shx, c.ahx,
+		c.ldy, c.lda, c.ldx, c.lax, c.ldy, c.lda, c.ldx, c.lax,
+		c.tay, c.lda, c.tax, c.lax, c.ldy, c.lda, c.ldx, c.lax,
+		c.bcs, c.lda, c.kil, c.lax, c.ldy, c.lda, c.ldx, c.lax,
+		c.clv, c.lda, c.tsx, c.las, c.ldy, c.lda, c.ldx, c.lax,
+		c.cpy, c.cmp, c.nop, c.dcp, c.cpy, c.cmp, c.dec, c.dcp,
+		c.iny, c.cmp, c.dex, c.axs, c.cpy, c.cmp, c.dec, c.dcp,
+		c.bne, c.cmp, c.kil, c.dcp, c.nop, c.cmp, c.dec, c.dcp,
+		c.cld, c.cmp, c.nop, c.dcp, c.nop, c.cmp, c.dec, c.dcp,
+		c.cpx, c.sbc, c.nop, c.isc, c.cpx, c.sbc, c.inc, c.isc,
+		c.inx, c.sbc, c.nop, c.sbc, c.cpx, c.sbc, c.inc, c.isc,
+		c.beq, c.sbc, c.kil, c.isc, c.nop, c.sbc, c.inc, c.isc,
+		c.sed, c.sbc, c.nop, c.isc, c.nop, c.sbc, c.inc, c.isc,
 	}
 }
 
@@ -324,6 +324,7 @@ func (cpu *CPU) setN(value byte) {
 // stepInfo contains information that the instruction functions to use
 type stepInfo struct {
 	address uint16
+	pc      uint16
 	mode    byte
 }
 
@@ -371,13 +372,14 @@ func (cpu *CPU) Step() {
 		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
 	}
 
+	info := &stepInfo{address, cpu.PC, mode}
+
 	cpu.PC += uint16(instructionSizes[opcode])
 	cpu.Cycles += uint64(instructionCycles[opcode])
 	if pageCrossed {
 		cpu.Cycles += uint64(instructionPageCycles[opcode])
 	}
 
-	info := &stepInfo{address, mode}
 	cpu.table[opcode](info)
 }
 
@@ -430,6 +432,9 @@ func (cpu *CPU) bcc(info *stepInfo) {
 	if cpu.C == 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -438,6 +443,9 @@ func (cpu *CPU) bcs(info *stepInfo) {
 	if cpu.C != 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -446,6 +454,9 @@ func (cpu *CPU) beq(info *stepInfo) {
 	if cpu.Z != 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -462,6 +473,9 @@ func (cpu *CPU) bmi(info *stepInfo) {
 	if cpu.N != 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -470,6 +484,9 @@ func (cpu *CPU) bne(info *stepInfo) {
 	if cpu.Z == 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -478,6 +495,9 @@ func (cpu *CPU) bpl(info *stepInfo) {
 	if cpu.N == 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -491,6 +511,9 @@ func (cpu *CPU) bvc(info *stepInfo) {
 	if cpu.V == 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -499,6 +522,9 @@ func (cpu *CPU) bvs(info *stepInfo) {
 	if cpu.V != 0 {
 		cpu.PC = info.address
 		cpu.Cycles++
+		if pagesDiffer(info.pc, info.address) {
+			cpu.Cycles++
+		}
 	}
 }
 
@@ -833,6 +859,61 @@ func (cpu *CPU) tya(info *stepInfo) {
 	cpu.setN(cpu.A)
 }
 
-// UNK - Unknown Opcode
-func (cpu *CPU) unk(info *stepInfo) {
+// illegal opcodes below
+
+func (cpu *CPU) ahx(info *stepInfo) {
+}
+
+func (cpu *CPU) alr(info *stepInfo) {
+}
+
+func (cpu *CPU) anc(info *stepInfo) {
+}
+
+func (cpu *CPU) arr(info *stepInfo) {
+}
+
+func (cpu *CPU) axs(info *stepInfo) {
+}
+
+func (cpu *CPU) dcp(info *stepInfo) {
+}
+
+func (cpu *CPU) isc(info *stepInfo) {
+}
+
+func (cpu *CPU) kil(info *stepInfo) {
+}
+
+func (cpu *CPU) las(info *stepInfo) {
+}
+
+func (cpu *CPU) lax(info *stepInfo) {
+}
+
+func (cpu *CPU) rla(info *stepInfo) {
+}
+
+func (cpu *CPU) rra(info *stepInfo) {
+}
+
+func (cpu *CPU) sax(info *stepInfo) {
+}
+
+func (cpu *CPU) shx(info *stepInfo) {
+}
+
+func (cpu *CPU) shy(info *stepInfo) {
+}
+
+func (cpu *CPU) slo(info *stepInfo) {
+}
+
+func (cpu *CPU) sre(info *stepInfo) {
+}
+
+func (cpu *CPU) tas(info *stepInfo) {
+}
+
+func (cpu *CPU) xaa(info *stepInfo) {
 }
