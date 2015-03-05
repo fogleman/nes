@@ -266,11 +266,11 @@ func (cpu *CPU) Step() {
 		address = cpu.Read16(cpu.PC+1) + uint16(cpu.Y)
 		// pageCrossed = PagesDiffer(address-uint16(cpu.Y), address)
 	case ACCUMULATOR:
-		break
+		address = 0
 	case IMMEDIATE:
 		address = cpu.PC + 1
 	case IMPLIED:
-		break
+		address = 0
 	case INDEXED_INDIRECT:
 		address = cpu.Read16(uint16(cpu.Read(cpu.PC+1) + cpu.X))
 	case INDIRECT:
@@ -305,7 +305,22 @@ func (cpu *CPU) Step() {
 
 // Instructions
 func (cpu *CPU) ADC(address uint16) {
-	log.Fatalln("Unimplemented instruction: ADC")
+	a := cpu.A
+	b := cpu.Read(address)
+	c := cpu.C
+	cpu.A = a + b + c
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
+	if int(a)+int(b)+int(c) > 0xFF {
+		cpu.C = 1
+	} else {
+		cpu.C = 0
+	}
+	if (a^b)&0x80 == 0 && (a^cpu.A)&0x80 != 0 {
+		cpu.V = 1
+	} else {
+		cpu.V = 0
+	}
 }
 
 func (cpu *CPU) AND(address uint16) {
@@ -315,7 +330,19 @@ func (cpu *CPU) AND(address uint16) {
 }
 
 func (cpu *CPU) ASL(address uint16) {
-	log.Fatalln("Unimplemented instruction: ASL")
+	if address == 0 && InstructionModes[cpu.Read(cpu.PC)] == ACCUMULATOR {
+		cpu.C = (cpu.A >> 7) & 1
+		cpu.A <<= 1
+		cpu.SetZ(cpu.A)
+		cpu.SetN(cpu.A)
+	} else {
+		value := cpu.Read(address)
+		cpu.C = (value >> 7) & 1
+		value <<= 1
+		cpu.Write(address, value)
+		cpu.SetZ(value)
+		cpu.SetN(value)
+	}
 }
 
 func (cpu *CPU) BCC(address uint16) {
@@ -402,34 +429,58 @@ func (cpu *CPU) CLV(address uint16) {
 }
 
 func (cpu *CPU) CMP(address uint16) {
-	value := cpu.A - cpu.Read(address)
-	if value >= 0 {
+	M := cpu.Read(address)
+	value := cpu.A - M
+	cpu.SetZ(value)
+	cpu.SetN(value)
+	if cpu.A >= M {
 		cpu.C = 1
 	} else {
 		cpu.C = 0
 	}
+}
+
+func (cpu *CPU) CPX(address uint16) {
+	M := cpu.Read(address)
+	value := cpu.X - M
+	cpu.SetZ(value)
+	cpu.SetN(value)
+	if cpu.X >= M {
+		cpu.C = 1
+	} else {
+		cpu.C = 0
+	}
+}
+
+func (cpu *CPU) CPY(address uint16) {
+	M := cpu.Read(address)
+	value := cpu.Y - M
+	cpu.SetZ(value)
+	cpu.SetN(value)
+	if cpu.Y >= M {
+		cpu.C = 1
+	} else {
+		cpu.C = 0
+	}
+}
+
+func (cpu *CPU) DEC(address uint16) {
+	value := cpu.Read(address) - 1
+	cpu.Write(address, value)
 	cpu.SetZ(value)
 	cpu.SetN(value)
 }
 
-func (cpu *CPU) CPX(address uint16) {
-	log.Fatalln("Unimplemented instruction: CPX")
-}
-
-func (cpu *CPU) CPY(address uint16) {
-	log.Fatalln("Unimplemented instruction: CPY")
-}
-
-func (cpu *CPU) DEC(address uint16) {
-	log.Fatalln("Unimplemented instruction: DEC")
-}
-
 func (cpu *CPU) DEX(address uint16) {
-	log.Fatalln("Unimplemented instruction: DEX")
+	cpu.X--
+	cpu.SetZ(cpu.X)
+	cpu.SetN(cpu.X)
 }
 
 func (cpu *CPU) DEY(address uint16) {
-	log.Fatalln("Unimplemented instruction: DEY")
+	cpu.Y--
+	cpu.SetZ(cpu.Y)
+	cpu.SetN(cpu.Y)
 }
 
 func (cpu *CPU) EOR(address uint16) {
@@ -439,15 +490,22 @@ func (cpu *CPU) EOR(address uint16) {
 }
 
 func (cpu *CPU) INC(address uint16) {
-	log.Fatalln("Unimplemented instruction: INC")
+	value := cpu.Read(address) + 1
+	cpu.Write(address, value)
+	cpu.SetZ(value)
+	cpu.SetN(value)
 }
 
 func (cpu *CPU) INX(address uint16) {
-	log.Fatalln("Unimplemented instruction: INX")
+	cpu.X++
+	cpu.SetZ(cpu.X)
+	cpu.SetN(cpu.X)
 }
 
 func (cpu *CPU) INY(address uint16) {
-	log.Fatalln("Unimplemented instruction: INY")
+	cpu.Y++
+	cpu.SetZ(cpu.Y)
+	cpu.SetN(cpu.Y)
 }
 
 func (cpu *CPU) JMP(address uint16) {
@@ -478,7 +536,19 @@ func (cpu *CPU) LDY(address uint16) {
 }
 
 func (cpu *CPU) LSR(address uint16) {
-	log.Fatalln("Unimplemented instruction: LSR")
+	if address == 0 && InstructionModes[cpu.Read(cpu.PC)] == ACCUMULATOR {
+		cpu.C = cpu.A & 1
+		cpu.A >>= 1
+		cpu.SetZ(cpu.A)
+		cpu.SetN(cpu.A)
+	} else {
+		value := cpu.Read(address)
+		cpu.C = value & 1
+		value >>= 1
+		cpu.Write(address, value)
+		cpu.SetZ(value)
+		cpu.SetN(value)
+	}
 }
 
 func (cpu *CPU) NOP(address uint16) {
@@ -509,15 +579,44 @@ func (cpu *CPU) PLP(address uint16) {
 }
 
 func (cpu *CPU) ROL(address uint16) {
-	log.Fatalln("Unimplemented instruction: ROL")
+	if address == 0 && InstructionModes[cpu.Read(cpu.PC)] == ACCUMULATOR {
+		c := cpu.C
+		cpu.C = (cpu.A >> 7) & 1
+		cpu.A = (cpu.A << 1) | c
+		cpu.SetZ(cpu.A)
+		cpu.SetN(cpu.A)
+	} else {
+		c := cpu.C
+		value := cpu.Read(address)
+		cpu.C = (value >> 7) & 1
+		value = (value << 1) | c
+		cpu.Write(address, value)
+		cpu.SetZ(value)
+		cpu.SetN(value)
+	}
 }
 
 func (cpu *CPU) ROR(address uint16) {
-	log.Fatalln("Unimplemented instruction: ROR")
+	if address == 0 && InstructionModes[cpu.Read(cpu.PC)] == ACCUMULATOR {
+		c := cpu.C
+		cpu.C = cpu.A & 1
+		cpu.A = (cpu.A >> 1) | (c << 7)
+		cpu.SetZ(cpu.A)
+		cpu.SetN(cpu.A)
+	} else {
+		c := cpu.C
+		value := cpu.Read(address)
+		cpu.C = value & 1
+		value = (value >> 1) | (c << 7)
+		cpu.Write(address, value)
+		cpu.SetZ(value)
+		cpu.SetN(value)
+	}
 }
 
 func (cpu *CPU) RTI(address uint16) {
-	log.Fatalln("Unimplemented instruction: RTI")
+	cpu.SetFlags(cpu.Pull()&0xEF | 0x20)
+	cpu.PC = cpu.Pull16()
 }
 
 func (cpu *CPU) RTS(address uint16) {
@@ -525,7 +624,22 @@ func (cpu *CPU) RTS(address uint16) {
 }
 
 func (cpu *CPU) SBC(address uint16) {
-	log.Fatalln("Unimplemented instruction: SBC")
+	a := cpu.A
+	b := cpu.Read(address)
+	c := cpu.C
+	cpu.A = a - b - (1 - c)
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
+	if int(a)-int(b)-int(1-c) >= 0 {
+		cpu.C = 1
+	} else {
+		cpu.C = 0
+	}
+	if (a^b)&0x80 != 0 && (a^cpu.A)&0x80 != 0 {
+		cpu.V = 1
+	} else {
+		cpu.V = 0
+	}
 }
 
 func (cpu *CPU) SEC(address uint16) {
@@ -549,23 +663,31 @@ func (cpu *CPU) STX(address uint16) {
 }
 
 func (cpu *CPU) STY(address uint16) {
-	log.Fatalln("Unimplemented instruction: STY")
+	cpu.Write(address, cpu.Y)
 }
 
 func (cpu *CPU) TAX(address uint16) {
-	log.Fatalln("Unimplemented instruction: TAX")
+	cpu.X = cpu.A
+	cpu.SetZ(cpu.X)
+	cpu.SetN(cpu.X)
 }
 
 func (cpu *CPU) TAY(address uint16) {
-	log.Fatalln("Unimplemented instruction: TAY")
+	cpu.Y = cpu.A
+	cpu.SetZ(cpu.Y)
+	cpu.SetN(cpu.Y)
 }
 
 func (cpu *CPU) TSX(address uint16) {
-	log.Fatalln("Unimplemented instruction: TSX")
+	cpu.X = cpu.SP
+	cpu.SetZ(cpu.X)
+	cpu.SetN(cpu.X)
 }
 
 func (cpu *CPU) TXA(address uint16) {
-	log.Fatalln("Unimplemented instruction: TXA")
+	cpu.A = cpu.X
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
 }
 
 func (cpu *CPU) TXS(address uint16) {
@@ -573,7 +695,9 @@ func (cpu *CPU) TXS(address uint16) {
 }
 
 func (cpu *CPU) TYA(address uint16) {
-	log.Fatalln("Unimplemented instruction: TYA")
+	cpu.A = cpu.Y
+	cpu.SetZ(cpu.A)
+	cpu.SetN(cpu.A)
 }
 
 func (cpu *CPU) UNK(address uint16) {
