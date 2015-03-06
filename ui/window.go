@@ -2,39 +2,22 @@ package ui
 
 import (
 	"image"
-	"image/draw"
-	"image/png"
-	"os"
 	"runtime"
 
+	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
 const (
 	width  = 256
-	height = 224
+	height = 240
 	scale  = 4
 	title  = "NES"
 )
 
 func init() {
 	runtime.LockOSThread()
-}
-
-func loadImage(path string) (*image.RGBA, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	im, err := png.Decode(file)
-	if err != nil {
-		return nil, err
-	}
-	rgba := image.NewRGBA(im.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), im, image.Point{0, 0}, draw.Src)
-	return rgba, nil
 }
 
 func createTexture() uint32 {
@@ -48,12 +31,12 @@ func createTexture() uint32 {
 	return texture
 }
 
-func setTexture(texture uint32, im *image.RGBA, offset int) {
+func setTexture(texture uint32, im *image.RGBA) {
 	size := im.Rect.Size()
 	gl.TexImage2D(
 		gl.TEXTURE_2D, 0, gl.RGBA,
 		int32(size.X), int32(size.Y),
-		0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix[offset:]))
+		0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix))
 }
 
 func drawQuad() {
@@ -69,7 +52,7 @@ func drawQuad() {
 	gl.End()
 }
 
-func Run() {
+func Run(nes *nes.NES) {
 	err := glfw.Init()
 	if err != nil {
 		panic(err)
@@ -91,20 +74,14 @@ func Run() {
 
 	gl.Enable(gl.TEXTURE_2D)
 
-	im, err := loadImage("texture.png")
-	if err != nil {
-		panic(err)
-	}
-
 	texture := createTexture()
 
-	frame := 0
 	for !window.ShouldClose() {
+		nes.StepFrame()
 		gl.Clear(gl.COLOR_BUFFER_BIT)
-		setTexture(texture, im, (frame*4)%1024)
+		setTexture(texture, nes.Buffer())
 		drawQuad()
 		window.SwapBuffers()
 		glfw.PollEvents()
-		frame++
 	}
 }

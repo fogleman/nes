@@ -1,5 +1,7 @@
 package nes
 
+import "image"
+
 type NES struct {
 	CPU       *CPU
 	PPU       *PPU
@@ -29,4 +31,15 @@ func (nes *NES) Step() int {
 		nes.PPU.Step()
 	}
 	return cpuCycles
+}
+
+func (nes *NES) StepFrame() {
+	frame := nes.PPU.Frame
+	for frame == nes.PPU.Frame {
+		nes.Step()
+	}
+}
+
+func (nes *NES) Buffer() *image.RGBA {
+	return nes.PPU.buffer
 }

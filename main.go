@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/fogleman/nes/nes"
+	"github.com/fogleman/nes/ui"
 )
 
 func main() {
@@ -16,8 +17,9 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	for {
-		nes.CPU.PrintInstruction()
-		nes.Step()
-	}
+	// for {
+	// 	nes.CPU.PrintInstruction()
+	// 	nes.Step()
+	// }
+	ui.Run(nes)
 }
