@@ -68,8 +68,10 @@ func (ppu *PPU) ReadRegister(address uint16) byte {
 		return ppu.readStatus()
 	case 0x2004:
 		return ppu.readOAMData()
+	case 0x2007:
+		return ppu.readData()
 	default:
-		log.Fatalf("unhandled ppu read at address: 0x%04X", address)
+		log.Fatalf("unhandled ppu register read at address: 0x%04X", address)
 	}
 	return 0
 }
@@ -93,7 +95,7 @@ func (ppu *PPU) WriteRegister(address uint16, value byte) {
 	case 0x4014:
 		ppu.writeDMA(value)
 	default:
-		log.Fatalf("unhandled ppu write at address: 0x%04X", address)
+		log.Fatalf("unhandled ppu register write at address: 0x%04X", address)
 	}
 }
 
@@ -154,6 +156,17 @@ func (ppu *PPU) writeScroll(value byte) {
 func (ppu *PPU) writeAddress(value byte) {
 	ppu.address <<= 8
 	ppu.address |= uint16(value)
+}
+
+// $2007: PPUDATA (read)
+func (ppu *PPU) readData() byte {
+	value := ppu.Read(ppu.address)
+	if ppu.flagIncrement == 0 {
+		ppu.address += 1
+	} else {
+		ppu.address += 32
+	}
+	return value
 }
 
 // $2007: PPUDATA (write)
