@@ -182,9 +182,10 @@ func (ppu *PPU) writeData(value byte) {
 // $4014: OAMDMA
 func (ppu *PPU) writeDMA(value byte) {
 	// TODO: stall CPU for 513 or 514 cycles
+	cpu := ppu.nes.CPU
 	address := uint16(value) << 8
 	for i := 0; i < 256; i++ {
-		ppu.oamData[ppu.oamAddress] = ppu.Read(address)
+		ppu.oamData[ppu.oamAddress] = cpu.Read(address)
 		ppu.oamAddress++
 		address++
 	}
