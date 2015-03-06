@@ -3,10 +3,10 @@ package nes
 import "log"
 
 type PPU struct {
-	Cycle    int
-	ScanLine int
-	Frame    uint64
-	VB       byte
+	Cycle    int    // 0-340
+	ScanLine int    // 0-261, 0-239=visible, 240=post, 241-260=vblank, 261=pre
+	Frame    uint64 // frame counter
+	VB       byte   // vertical blank flag
 }
 
 func NewPPU() *PPU {
@@ -38,6 +38,7 @@ func (ppu *PPU) Write(address uint16, value byte) {
 	}
 }
 
+// tick updates Cycle, ScanLine and Frame counters
 func (ppu *PPU) tick() {
 	ppu.Cycle++
 	if ppu.Cycle > 340 {
@@ -48,16 +49,16 @@ func (ppu *PPU) tick() {
 			ppu.Frame++
 		}
 	}
+}
+
+func (ppu *PPU) Step() {
+	ppu.tick()
 	if ppu.ScanLine == 241 && ppu.Cycle == 1 {
 		ppu.VB = 1
 	}
 	if ppu.ScanLine == 261 && ppu.Cycle == 1 {
 		ppu.VB = 0
 	}
-}
-
-func (ppu *PPU) Step() {
-	ppu.tick()
 }
 
 func (ppu *PPU) readStatus() byte {
