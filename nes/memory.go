@@ -6,37 +6,35 @@ type Memory interface {
 	Write(address uint16, value byte)
 }
 
-type CPUMemory struct {
-	NES *NES
-	RAM []byte
+type cpuMemory struct {
+	nes *NES
 }
 
 func NewCPUMemory(nes *NES) Memory {
-	ram := make([]byte, 2048)
-	return &CPUMemory{nes, ram}
+	return &cpuMemory{nes}
 }
 
-func (mem *CPUMemory) Read(address uint16) byte {
+func (mem *cpuMemory) Read(address uint16) byte {
 	switch {
 	case address < 0x2000:
-		return mem.RAM[address%0x0800]
+		return mem.nes.RAM[address%0x0800]
 	case address >= 0x6000:
-		return mem.NES.Cartridge.Read(address)
+		return mem.nes.Cartridge.Read(address)
 	}
 	return 0
 }
 
-func (mem *CPUMemory) Read16(address uint16) uint16 {
+func (mem *cpuMemory) Read16(address uint16) uint16 {
 	lo := uint16(mem.Read(address))
 	hi := uint16(mem.Read(address + 1))
 	return hi<<8 | lo
 }
 
-func (mem *CPUMemory) Write(address uint16, value byte) {
+func (mem *cpuMemory) Write(address uint16, value byte) {
 	switch {
 	case address < 0x2000:
-		mem.RAM[address%0x0800] = value
+		mem.nes.RAM[address%0x0800] = value
 	case address >= 0x6000:
-		mem.NES.Cartridge.Write(address, value)
+		mem.nes.Cartridge.Write(address, value)
 	}
 }

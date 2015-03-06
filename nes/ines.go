@@ -7,9 +7,9 @@ import (
 	"os"
 )
 
-const NESFileMagic = 0x1a53454e
+const iNESFileMagic = 0x1a53454e
 
-type NESFileHeader struct {
+type iNESFileHeader struct {
 	Magic    uint32  // iNES magic number
 	NumPRG   byte    // number of PRG-ROM banks (16KB each)
 	NumCHR   byte    // number of CHR-ROM banks (8KB each)
@@ -19,7 +19,7 @@ type NESFileHeader struct {
 	_        [7]byte // unused padding
 }
 
-// LoadNESFile reads the iNES file format and returns a Cartridge on success.
+// LoadNESFile reads an iNES file (.nes) and returns a Cartridge on success.
 // http://wiki.nesdev.com/w/index.php/INES
 // http://nesdev.com/NESDoc.pdf (page 28)
 func LoadNESFile(path string) (*Cartridge, error) {
@@ -31,13 +31,13 @@ func LoadNESFile(path string) (*Cartridge, error) {
 	defer file.Close()
 
 	// read file header
-	header := NESFileHeader{}
+	header := iNESFileHeader{}
 	if err := binary.Read(file, binary.LittleEndian, &header); err != nil {
 		return nil, err
 	}
 
 	// verify header magic number
-	if header.Magic != NESFileMagic {
+	if header.Magic != iNESFileMagic {
 		return nil, errors.New("invalid .nes file")
 	}
 
