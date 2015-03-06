@@ -20,10 +20,12 @@ func (mem *cpuMemory) Read(address uint16) byte {
 	switch {
 	case address < 0x2000:
 		return mem.nes.RAM[address%0x0800]
+	case address < 0x4000:
+		return mem.nes.PPU.Read(0x2000 + address%8)
 	case address >= 0x6000:
 		return mem.nes.Cartridge.Read(address)
 	default:
-		log.Fatalf("unhandled read at address: 0x%04X", address)
+		log.Fatalf("unhandled cpu read at address: 0x%04X", address)
 	}
 	return 0
 }
@@ -38,9 +40,11 @@ func (mem *cpuMemory) Write(address uint16, value byte) {
 	switch {
 	case address < 0x2000:
 		mem.nes.RAM[address%0x0800] = value
+	case address < 0x4000:
+		mem.nes.PPU.Write(0x2000+address%8, value)
 	case address >= 0x6000:
 		mem.nes.Cartridge.Write(address, value)
 	default:
-		log.Fatalf("unhandled write at address: 0x%04X", address)
+		log.Fatalf("unhandled cpu write at address: 0x%04X", address)
 	}
 }

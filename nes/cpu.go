@@ -210,6 +210,27 @@ func (cpu *CPU) Reset() {
 	cpu.SetFlags(0x24)
 }
 
+// PrintInstruction prints the current CPU state
+func (cpu *CPU) PrintInstruction() {
+	opcode := cpu.Read(cpu.PC)
+	bytes := instructionSizes[opcode]
+	name := instructionNames[opcode]
+	w0 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+0))
+	w1 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+1))
+	w2 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+2))
+	if bytes < 2 {
+		w1 = "  "
+	}
+	if bytes < 3 {
+		w2 = "  "
+	}
+	fmt.Printf(
+		"%4X  %s %s %s  %s %28s"+
+			"A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n",
+		cpu.PC, w0, w1, w2, name, "",
+		cpu.A, cpu.X, cpu.Y, cpu.Flags(), cpu.SP, (cpu.Cycles*3)%341)
+}
+
 // pagesDiffer returns true if the two addresses reference different pages
 func pagesDiffer(a, b uint16) bool {
 	return a&0xFF00 != b&0xFF00
@@ -241,27 +262,6 @@ func (cpu *CPU) read16bug(address uint16) uint16 {
 	lo := cpu.Read(a)
 	hi := cpu.Read(b)
 	return uint16(hi)<<8 | uint16(lo)
-}
-
-// printInstruction prints the current CPU state
-func (cpu *CPU) printInstruction() {
-	opcode := cpu.Read(cpu.PC)
-	bytes := instructionSizes[opcode]
-	name := instructionNames[opcode]
-	w0 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+0))
-	w1 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+1))
-	w2 := fmt.Sprintf("%02X", cpu.Read(cpu.PC+2))
-	if bytes < 2 {
-		w1 = "  "
-	}
-	if bytes < 3 {
-		w2 = "  "
-	}
-	fmt.Printf(
-		"%4X  %s %s %s  %s %28s"+
-			"A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n",
-		cpu.PC, w0, w1, w2, name, "",
-		cpu.A, cpu.X, cpu.Y, cpu.Flags(), cpu.SP, (cpu.Cycles*3)%341)
 }
 
 // push pushes a byte onto the stack
@@ -349,8 +349,7 @@ type stepInfo struct {
 }
 
 // Step executes a single CPU instruction
-func (cpu *CPU) Step() {
-	cpu.printInstruction()
+func (cpu *CPU) Step() int {
 	opcode := cpu.Read(cpu.PC)
 	mode := instructionModes[opcode]
 
@@ -393,15 +392,17 @@ func (cpu *CPU) Step() {
 		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
 	}
 
-	info := &stepInfo{address, cpu.PC, mode}
+	cycles := cpu.Cycles
 
+	info := &stepInfo{address, cpu.PC, mode}
 	cpu.PC += uint16(instructionSizes[opcode])
 	cpu.Cycles += uint64(instructionCycles[opcode])
 	if pageCrossed {
 		cpu.Cycles += uint64(instructionPageCycles[opcode])
 	}
-
 	cpu.table[opcode](info)
+
+	return int(cpu.Cycles - cycles)
 }
 
 // ADC - Add with Carry

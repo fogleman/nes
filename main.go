@@ -17,6 +17,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	for {
-		nes.CPU.Step()
+		nes.CPU.PrintInstruction()
+		nes.Step()
 	}
 }
