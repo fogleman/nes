@@ -21,7 +21,7 @@ func readString(cpu *CPU, address uint16) string {
 
 // instr_test: http://wiki.nesdev.com/w/index.php/Emulator_tests
 func TestOfficialInstructions(t *testing.T) {
-	nes, err := NewNES("../roms/official_instructions.nes")
+	nes, err := NewNES("../roms/cpu_tests/official_instructions.nes")
 	if err != nil {
 		t.Fatal(err)
 	}

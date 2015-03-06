@@ -1,9 +1,6 @@
 package nes
 
-import (
-	"fmt"
-	"log"
-)
+import "fmt"
 
 // addressing modes
 const (
@@ -279,7 +276,7 @@ func (cpu *CPU) pull() byte {
 	return cpu.Read(0x100 | uint16(cpu.SP))
 }
 
-// push pushes two bytes onto the stack
+// push16 pushes two bytes onto the stack
 func (cpu *CPU) push16(value uint16) {
 	hi := byte(value >> 8)
 	lo := byte(value & 0xFF)
@@ -287,7 +284,7 @@ func (cpu *CPU) push16(value uint16) {
 	cpu.push(lo)
 }
 
-// pull pops two bytes from the stack
+// pull16 pops two bytes from the stack
 func (cpu *CPU) pull16() uint16 {
 	lo := uint16(cpu.pull())
 	hi := uint16(cpu.pull())
@@ -353,6 +350,7 @@ type stepInfo struct {
 
 // Step executes a single CPU instruction
 func (cpu *CPU) Step() {
+	cpu.printInstruction()
 	opcode := cpu.Read(cpu.PC)
 	mode := instructionModes[opcode]
 
@@ -504,7 +502,10 @@ func (cpu *CPU) bpl(info *stepInfo) {
 
 // BRK - Force Interrupt
 func (cpu *CPU) brk(info *stepInfo) {
-	log.Fatalln("Unimplemented instruction: BRK")
+	cpu.push16(cpu.PC)
+	cpu.php(info)
+	cpu.sei(info)
+	cpu.PC = cpu.Read16(0xFFFE)
 }
 
 // BVC - Branch if Overflow Clear
