@@ -78,7 +78,7 @@ func (mem *ppuMemory) Read(address uint16) byte {
 	case address < 0x2000:
 		return mem.nes.Cartridge.Read(address)
 	case address < 0x3F00:
-		return mem.nes.PPU.nametableData[address%2048]
+		return mem.nes.PPU.nameTableData[address%2048]
 	case address < 0x4000:
 		return mem.nes.PPU.paletteData[address%32]
 	default:
@@ -94,7 +94,7 @@ func (mem *ppuMemory) Write(address uint16, value byte) {
 		mem.nes.Cartridge.Write(address, value)
 		return
 	case address < 0x3F00:
-		mem.nes.PPU.nametableData[address%2048] = value
+		mem.nes.PPU.nameTableData[address%2048] = value
 		return
 	case address < 0x4000:
 		mem.nes.PPU.paletteData[address%32] = value
