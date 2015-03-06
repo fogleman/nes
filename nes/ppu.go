@@ -265,7 +265,7 @@ func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
 	gy := y / 4
 	sx := (x % 4) / 2
 	sy := (y % 4) / 2
-	address := uint16(0x23c0 + 0x1000*nameTable + gy*8 + gx)
+	address := uint16(0x23c0 + 0x400*nameTable + gy*8 + gx)
 	attribute := ppu.Read(address)
 	shift := byte((sy*2 + sx) * 2)
 	return (attribute >> shift) & 3
@@ -274,7 +274,7 @@ func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
 func (ppu *PPU) tilePattern(nameTable, x, y, row int) (byte, byte) {
 	// fetch pattern index from name table
 	index := y*32 + x
-	address := uint16(0x2000 + 0x1000*nameTable + index)
+	address := uint16(0x2000 + 0x400*nameTable + index)
 	pattern := int(ppu.Read(address))
 	// fetch pattern data from pattern table
 	patternTable := int(ppu.flagBackgroundTable)
@@ -303,7 +303,7 @@ func (ppu *PPU) renderScanLine() {
 	y := ppu.ScanLine
 	ty := y / 8
 	row := y % 8
-	for tx := 0; tx < 8; tx++ {
+	for tx := 0; tx < 32; tx++ {
 		tile := ppu.tileRow(nameTable, tx, ty, row)
 		for i := 0; i < 8; i++ {
 			x := tx*8 + i

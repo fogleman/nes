@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"runtime"
 
@@ -12,7 +13,7 @@ import (
 const (
 	width  = 256
 	height = 240
-	scale  = 4
+	scale  = 2
 	title  = "NES"
 )
 
@@ -78,6 +79,7 @@ func Run(nes *nes.NES) {
 
 	for !window.ShouldClose() {
 		nes.StepFrame()
+		fmt.Println(nes.PPU.Frame)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		setTexture(texture, nes.Buffer())
 		drawQuad()
