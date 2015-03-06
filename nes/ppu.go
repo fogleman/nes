@@ -42,7 +42,8 @@ type PPU struct {
 	// $2006 PPUADDR
 	address uint16 // address used by $2007 PPUDATA
 
-	paletteData [32]byte
+	paletteData   [32]byte
+	nametableData [2048]byte
 }
 
 func NewPPU(nes *NES) *PPU {
