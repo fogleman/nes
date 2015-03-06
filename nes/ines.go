@@ -74,6 +74,11 @@ func LoadNESFile(path string) (*Cartridge, error) {
 		return nil, err
 	}
 
+	// provide chr-rom/ram if not in file
+	if header.NumCHR == 0 {
+		chr = make([]byte, 8192)
+	}
+
 	// success
 	sram := make([]byte, 8192)
 	cartridge := Cartridge{prg, chr, sram, mapper, mirror, battery}
