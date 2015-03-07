@@ -81,6 +81,9 @@ type PPU struct {
 	// $2006 PPUADDR
 	address uint16 // address used by $2007 PPUDATA
 
+	// $2007 PPUDATA
+	data byte // for buffered reads
+
 	paletteData   [32]byte
 	nameTableData [2048]byte
 
@@ -104,7 +107,7 @@ func (ppu *PPU) Reset() {
 	ppu.writeOAMAddress(0)
 }
 
-func (ppu *PPU) ReadRegister(address uint16) byte {
+func (ppu *PPU) readRegister(address uint16) byte {
 	switch address {
 	case 0x2002:
 		return ppu.readStatus()
@@ -118,7 +121,7 @@ func (ppu *PPU) ReadRegister(address uint16) byte {
 	return 0
 }
 
-func (ppu *PPU) WriteRegister(address uint16, value byte) {
+func (ppu *PPU) writeRegister(address uint16, value byte) {
 	switch address {
 	case 0x2000:
 		ppu.writeControl(value)
@@ -203,6 +206,15 @@ func (ppu *PPU) writeAddress(value byte) {
 // $2007: PPUDATA (read)
 func (ppu *PPU) readData() byte {
 	value := ppu.Read(ppu.address)
+	// emulate buffered reads
+	if ppu.address%0x4000 < 0x3F00 {
+		buffered := ppu.data
+		ppu.data = value
+		value = buffered
+	} else {
+		ppu.data = ppu.Read(ppu.address - 0x1000)
+	}
+	// increment address
 	if ppu.flagIncrement == 0 {
 		ppu.address += 1
 	} else {
@@ -231,6 +243,20 @@ func (ppu *PPU) writeDMA(value byte) {
 		ppu.oamAddress++
 		address++
 	}
+}
+
+func (ppu *PPU) readPalette(address uint16) byte {
+	if address >= 16 && address%4 == 0 {
+		address -= 16
+	}
+	return ppu.paletteData[address]
+}
+
+func (ppu *PPU) writePalette(address uint16, value byte) {
+	if address >= 16 && address%4 == 0 {
+		address -= 16
+	}
+	ppu.paletteData[address] = value
 }
 
 // tick updates Cycle, ScanLine and Frame counters

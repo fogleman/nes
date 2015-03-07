@@ -23,9 +23,9 @@ func (mem *cpuMemory) Read(address uint16) byte {
 	case address < 0x2000:
 		return mem.nes.RAM[address%0x0800]
 	case address < 0x4000:
-		return mem.nes.PPU.ReadRegister(0x2000 + address%8)
+		return mem.nes.PPU.readRegister(0x2000 + address%8)
 	case address == 0x4014:
-		return mem.nes.PPU.ReadRegister(address)
+		return mem.nes.PPU.readRegister(address)
 	case address >= 0x6000:
 		return mem.nes.Cartridge.Read(address)
 	default:
@@ -40,10 +40,10 @@ func (mem *cpuMemory) Write(address uint16, value byte) {
 		mem.nes.RAM[address%0x0800] = value
 		return
 	case address < 0x4000:
-		mem.nes.PPU.WriteRegister(0x2000+address%8, value)
+		mem.nes.PPU.writeRegister(0x2000+address%8, value)
 		return
 	case address == 0x4014:
-		mem.nes.PPU.WriteRegister(address, value)
+		mem.nes.PPU.writeRegister(address, value)
 		return
 	case address < 0x4020:
 		// TODO: I/O registers
@@ -80,7 +80,7 @@ func (mem *ppuMemory) Read(address uint16) byte {
 	case address < 0x3F00:
 		return mem.nes.PPU.nameTableData[address%2048]
 	case address < 0x4000:
-		return mem.nes.PPU.paletteData[address%32]
+		return mem.nes.PPU.readPalette(address % 32)
 	default:
 		log.Fatalf("unhandled ppu memory read at address: 0x%04X", address)
 	}
@@ -97,7 +97,7 @@ func (mem *ppuMemory) Write(address uint16, value byte) {
 		mem.nes.PPU.nameTableData[address%2048] = value
 		return
 	case address < 0x4000:
-		mem.nes.PPU.paletteData[address%32] = value
+		mem.nes.PPU.writePalette(address%32, value)
 		return
 	default:
 		log.Fatalf("unhandled ppu memory write at address: 0x%04X", address)

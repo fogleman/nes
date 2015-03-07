@@ -12,7 +12,7 @@ import (
 const (
 	width  = 256
 	height = 240
-	scale  = 2
+	scale  = 3
 	title  = "NES"
 )
 

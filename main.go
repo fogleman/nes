@@ -17,9 +17,5 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// for {
-	// 	nes.CPU.PrintInstruction()
-	// 	nes.Step()
-	// }
 	ui.Run(nes)
 }
