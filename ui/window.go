@@ -39,16 +39,27 @@ func setTexture(texture uint32, im *image.RGBA) {
 		0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix))
 }
 
-func drawQuad() {
+func drawQuad(window *glfw.Window) {
+	w, h := window.GetFramebufferSize()
+	aspect := float32(w) / float32(h)
+	var x, y, size float32
+	size = 0.95
+	if aspect >= 1 {
+		x = size / aspect
+		y = size
+	} else {
+		x = size
+		y = size * aspect
+	}
 	gl.Begin(gl.QUADS)
 	gl.TexCoord2f(0, 1)
-	gl.Vertex3f(-1, -1, 1)
+	gl.Vertex3f(-x, -y, 1)
 	gl.TexCoord2f(1, 1)
-	gl.Vertex3f(1, -1, 1)
+	gl.Vertex3f(x, -y, 1)
 	gl.TexCoord2f(1, 0)
-	gl.Vertex3f(1, 1, 1)
+	gl.Vertex3f(x, y, 1)
 	gl.TexCoord2f(0, 0)
-	gl.Vertex3f(-1, 1, 1)
+	gl.Vertex3f(-x, y, 1)
 	gl.End()
 }
 
@@ -59,7 +70,6 @@ func Run(nes *nes.NES) {
 	}
 	defer glfw.Terminate()
 
-	glfw.WindowHint(glfw.Resizable, glfw.False)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
@@ -77,9 +87,9 @@ func Run(nes *nes.NES) {
 
 	for !window.ShouldClose() {
 		nes.StepFrame()
-		gl.Clear(gl.COLOR_BUFFER_BIT)
 		setTexture(texture, nes.Buffer())
-		drawQuad()
+		gl.Clear(gl.COLOR_BUFFER_BIT)
+		drawQuad(window)
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
