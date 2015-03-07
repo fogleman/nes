@@ -42,17 +42,17 @@ func LoadNESFile(path string) (*Cartridge, error) {
 	}
 
 	// mapper type
-	mapper1 := int(header.Control1) >> 4
-	mapper2 := int(header.Control2) >> 4
+	mapper1 := header.Control1 >> 4
+	mapper2 := header.Control2 >> 4
 	mapper := mapper1 | mapper2<<4
 
 	// mirroring type
-	mirror1 := int(header.Control1) & 1
-	mirror2 := int(header.Control1>>3) & 1
+	mirror1 := header.Control1 & 1
+	mirror2 := (header.Control1 >> 3) & 1
 	mirror := mirror1 | mirror2<<1
 
 	// battery-backed RAM
-	battery := header.Control1&2 == 2
+	battery := (header.Control1 >> 1) & 1
 
 	// read trainer if present (unused)
 	if header.Control1&4 == 4 {
@@ -80,7 +80,5 @@ func LoadNESFile(path string) (*Cartridge, error) {
 	}
 
 	// success
-	sram := make([]byte, 8192)
-	cartridge := Cartridge{prg, chr, sram, mapper, mirror, battery}
-	return &cartridge, nil
+	return NewCartridge(prg, chr, mapper, mirror, battery), nil
 }
