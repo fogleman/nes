@@ -280,6 +280,9 @@ func (ppu *PPU) Step() {
 	}
 	if ppu.Cycle == 1 && ppu.ScanLine == 241 {
 		ppu.VerticalBlank = 1
+		if ppu.flagGenerateNMI != 0 {
+			ppu.nes.CPU.triggerNMI()
+		}
 	}
 	if ppu.Cycle == 1 && ppu.ScanLine == 261 {
 		ppu.VerticalBlank = 0

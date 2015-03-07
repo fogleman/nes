@@ -2,6 +2,13 @@ package nes
 
 import "fmt"
 
+// interrupt types
+const (
+	_ = iota
+	interruptNone
+	interruptNMI
+)
+
 // addressing modes
 const (
 	_ = iota
@@ -139,22 +146,23 @@ var instructionNames = [256]string{
 }
 
 type CPU struct {
-	Memory        // memory interface
-	Cycles uint64 // number of cycles
-	PC     uint16 // program counter
-	SP     byte   // stack pointer
-	A      byte   // accumulator
-	X      byte   // x register
-	Y      byte   // y register
-	C      byte   // carry flag
-	Z      byte   // zero flag
-	I      byte   // interrupt disable flag
-	D      byte   // decimal mode flag
-	B      byte   // break command flag
-	U      byte   // unused flag
-	V      byte   // overflow flag
-	N      byte   // negative flag
-	table  [256]func(*stepInfo)
+	Memory           // memory interface
+	Cycles    uint64 // number of cycles
+	PC        uint16 // program counter
+	SP        byte   // stack pointer
+	A         byte   // accumulator
+	X         byte   // x register
+	Y         byte   // y register
+	C         byte   // carry flag
+	Z         byte   // zero flag
+	I         byte   // interrupt disable flag
+	D         byte   // decimal mode flag
+	B         byte   // break command flag
+	U         byte   // unused flag
+	V         byte   // overflow flag
+	N         byte   // negative flag
+	interrupt byte   // interrupt type to perform
+	table     [256]func(*stepInfo)
 }
 
 func NewCPU(nes *NES) *CPU {
@@ -341,6 +349,11 @@ func (cpu *CPU) setZN(value byte) {
 	cpu.setN(value)
 }
 
+// triggerNMI causes a non-maskable interrupt to occur on the next cycle
+func (cpu *CPU) triggerNMI() {
+	cpu.interrupt = interruptNMI
+}
+
 // stepInfo contains information that the instruction functions use
 type stepInfo struct {
 	address uint16
@@ -350,6 +363,12 @@ type stepInfo struct {
 
 // Step executes a single CPU instruction
 func (cpu *CPU) Step() int {
+	switch cpu.interrupt {
+	case interruptNMI:
+		cpu.nmi()
+	}
+	cpu.interrupt = interruptNone
+
 	opcode := cpu.Read(cpu.PC)
 	mode := instructionModes[opcode]
 
@@ -403,6 +422,13 @@ func (cpu *CPU) Step() int {
 	cpu.table[opcode](info)
 
 	return int(cpu.Cycles - cycles)
+}
+
+// NMI - Non-Maskable Interrupt
+func (cpu *CPU) nmi() {
+	cpu.push16(cpu.PC)
+	cpu.php(nil)
+	cpu.PC = cpu.Read16(0xFFFA)
 }
 
 // ADC - Add with Carry
