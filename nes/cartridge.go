@@ -41,10 +41,10 @@ func (c *Cartridge) Read(address uint16) byte {
 		index := c.chrBank*0x2000 + int(address)
 		return c.CHR[index]
 	case address >= 0xC000:
-		index := c.prgBank2*0x4000 + int(address) - 0xC000
+		index := c.prgBank2*0x4000 + int(address-0xC000)
 		return c.PRG[index]
 	case address >= 0x8000:
-		index := c.prgBank1*0x4000 + int(address) - 0x8000
+		index := c.prgBank1*0x4000 + int(address-0x8000)
 		return c.PRG[index]
 	case address >= 0x6000:
 		index := int(address) - 0x6000

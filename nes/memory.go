@@ -26,6 +26,10 @@ func (mem *cpuMemory) Read(address uint16) byte {
 		return mem.nes.PPU.readRegister(0x2000 + address%8)
 	case address == 0x4014:
 		return mem.nes.PPU.readRegister(address)
+	case address == 0x4016:
+		return 0
+	case address == 0x4017:
+		return 0
 	case address >= 0x6000:
 		return mem.nes.Cartridge.Read(address)
 	default:

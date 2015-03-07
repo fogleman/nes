@@ -26,7 +26,7 @@ func NewNES(path string) (*NES, error) {
 }
 
 func (nes *NES) Step() int {
-	nes.CPU.PrintInstruction()
+	// nes.CPU.PrintInstruction()
 	cpuCycles := nes.CPU.Step()
 	ppuCycles := cpuCycles * 3
 	for i := 0; i < ppuCycles; i++ {
