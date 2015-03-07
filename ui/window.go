@@ -73,7 +73,6 @@ func Run(nes *nes.NES) {
 	}
 
 	gl.Enable(gl.TEXTURE_2D)
-
 	texture := createTexture()
 
 	for !window.ShouldClose() {
