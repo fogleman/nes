@@ -293,7 +293,7 @@ func (ppu *PPU) tileRow(nameTable, x, y, row int) [8]byte {
 		p1 := (pattern1 & 1)
 		p2 := (pattern2 & 1) << 1
 		index := attribute | p1 | p2
-		result[i] = ppu.paletteData[index]
+		result[7-i] = ppu.paletteData[index]
 		pattern1 >>= 1
 		pattern2 >>= 1
 	}
