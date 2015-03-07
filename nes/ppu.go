@@ -293,17 +293,41 @@ func (ppu *PPU) tileRow(nameTable, x, y, row int) [8]byte {
 	return result
 }
 
-func (ppu *PPU) renderScanLine() {
-	nameTable := int(ppu.flagNameTable)
-	y := ppu.ScanLine
+func (ppu *PPU) renderNameTableLine(nameTable, y int) []byte {
+	result := make([]byte, 256)
 	ty := y / 8
 	row := y % 8
 	for tx := 0; tx < 32; tx++ {
 		tile := ppu.tileRow(nameTable, tx, ty, row)
 		for i := 0; i < 8; i++ {
 			x := tx*8 + i
-			c := palette[tile[i]]
-			ppu.buffer.SetRGBA(x, y, c)
+			result[x] = tile[i]
 		}
+	}
+	return result
+}
+
+func (ppu *PPU) renderScanLine() {
+	sx := int(ppu.scroll >> 8)
+	sy := int(ppu.scroll & 0xFF)
+
+	y := ppu.ScanLine + sy
+	nameTable := int(ppu.flagNameTable)
+	if y >= 240 {
+		y -= 240
+		nameTable += 2
+	}
+	nameTable1 := (nameTable + 0) % 4
+	nameTable2 := (nameTable + 1) % 4
+
+	line1 := ppu.renderNameTableLine(nameTable1, y)
+	line2 := ppu.renderNameTableLine(nameTable2, y)
+	line := make([]byte, 0, 512)
+	line = append(line, line1...)
+	line = append(line, line2...)
+
+	for i := 0; i < 256; i++ {
+		c := palette[line[sx+i]]
+		ppu.buffer.SetRGBA(i, ppu.ScanLine, c)
 	}
 }
