@@ -253,6 +253,23 @@ func (ppu *PPU) Step() {
 	}
 }
 
+func (ppu *PPU) pattern(attribute, patternTable, pattern, row int) [8]byte {
+	patternAddress1 := uint16(0x1000*patternTable + pattern*16 + row)
+	patternAddress2 := patternAddress1 + 8
+	pattern1 := ppu.Read(patternAddress1)
+	pattern2 := ppu.Read(patternAddress2)
+	var result [8]byte
+	for i := 0; i < 8; i++ {
+		p1 := (pattern1 & 1)
+		p2 := (pattern2 & 1) << 1
+		index := byte(attribute) | p1 | p2
+		result[7-i] = ppu.readPalette(uint16(index))
+		pattern1 >>= 1
+		pattern2 >>= 1
+	}
+	return result
+}
+
 func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
 	gx := x / 4
 	gy := y / 4
@@ -264,33 +281,17 @@ func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
 	return (attribute >> shift) & 3
 }
 
-func (ppu *PPU) tilePattern(nameTable, x, y, row int) (byte, byte) {
-	// fetch pattern index from name table
+func (ppu *PPU) tilePattern(attribute, nameTable, x, y, row int) [8]byte {
 	index := y*32 + x
 	address := uint16(0x2000 + 0x400*nameTable + index)
 	pattern := int(ppu.Read(address))
-	// fetch pattern data from pattern table
 	patternTable := int(ppu.flagBackgroundTable)
-	patternAddress1 := uint16(0x1000*patternTable + pattern*16 + row)
-	patternAddress2 := patternAddress1 + 8
-	pattern1 := ppu.Read(patternAddress1)
-	pattern2 := ppu.Read(patternAddress2)
-	return pattern1, pattern2
+	return ppu.pattern(attribute, patternTable, pattern, row)
 }
 
 func (ppu *PPU) tileRow(nameTable, x, y, row int) [8]byte {
-	attribute := ppu.tileAttribute(nameTable, x, y) << 2
-	pattern1, pattern2 := ppu.tilePattern(nameTable, x, y, row)
-	var result [8]byte
-	for i := 0; i < 8; i++ {
-		p1 := (pattern1 & 1)
-		p2 := (pattern2 & 1) << 1
-		index := attribute | p1 | p2
-		result[7-i] = ppu.paletteData[index]
-		pattern1 >>= 1
-		pattern2 >>= 1
-	}
-	return result
+	attribute := int(ppu.tileAttribute(nameTable, x, y) << 2)
+	return ppu.tilePattern(attribute, nameTable, x, y, row)
 }
 
 func (ppu *PPU) renderNameTableLine(nameTable, y int) []byte {
@@ -302,6 +303,39 @@ func (ppu *PPU) renderNameTableLine(nameTable, y int) []byte {
 		for i := 0; i < 8; i++ {
 			x := tx*8 + i
 			result[x] = tile[i]
+		}
+	}
+	return result
+}
+
+func (ppu *PPU) renderSpriteLine() []byte {
+	result := make([]byte, 256)
+	for i := 0; i < 64; i++ {
+		index := i * 4
+		y := ppu.oamData[index+0]
+		t := ppu.oamData[index+1]
+		f := ppu.oamData[index+2]
+		x := ppu.oamData[index+3]
+		row := int(y) - ppu.ScanLine
+		if row < 0 || row > 7 {
+			continue
+		}
+		pattern := t
+		bank := ppu.flagSpriteTable
+		if ppu.flagSpriteSize == 1 {
+			bank = t & 1
+			pattern = t & 0xFE
+		}
+		attribute := (f&3)<<2 | 16
+		tile := ppu.pattern(int(attribute), int(bank), int(pattern), row)
+		for j := 0; j < 8; j++ {
+			index := int(x) + j
+			if index > 255 {
+				continue
+			}
+			if result[index]%4 == 0 {
+				result[index] = tile[j]
+			}
 		}
 	}
 	return result
@@ -325,9 +359,16 @@ func (ppu *PPU) renderScanLine() {
 	line := make([]byte, 0, 512)
 	line = append(line, line1...)
 	line = append(line, line2...)
+	sprites := ppu.renderSpriteLine()
 
 	for i := 0; i < 256; i++ {
-		c := palette[line[sx+i]]
+		background := line[sx+i]
+		sprite := sprites[i]
+		p := sprite
+		if sprite%4 == 0 {
+			p = background
+		}
+		c := palette[p]
 		ppu.buffer.SetRGBA(i, ppu.ScanLine, c)
 	}
 }
