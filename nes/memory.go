@@ -27,9 +27,9 @@ func (mem *cpuMemory) Read(address uint16) byte {
 	case address == 0x4014:
 		return mem.nes.PPU.readRegister(address)
 	case address == 0x4016:
-		return 0
+		return mem.nes.Controller1.Read()
 	case address == 0x4017:
-		return 0
+		return mem.nes.Controller2.Read()
 	case address >= 0x6000:
 		return mem.nes.Cartridge.Read(address)
 	default:
@@ -48,6 +48,12 @@ func (mem *cpuMemory) Write(address uint16, value byte) {
 		return
 	case address == 0x4014:
 		mem.nes.PPU.writeRegister(address, value)
+		return
+	case address == 0x4016:
+		mem.nes.Controller1.Write(value)
+		return
+	case address == 0x4017:
+		mem.nes.Controller2.Write(value)
 		return
 	case address < 0x4020:
 		// TODO: I/O registers

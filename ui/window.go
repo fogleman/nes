@@ -63,7 +63,18 @@ func drawQuad(window *glfw.Window) {
 	gl.End()
 }
 
-func Run(nes *nes.NES) {
+func readKeys(window *glfw.Window, machine *nes.NES) {
+	machine.SetPressed(1, nes.ButtonA, window.GetKey(glfw.KeyZ) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonB, window.GetKey(glfw.KeyX) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonSelect, window.GetKey(glfw.KeyRightShift) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonStart, window.GetKey(glfw.KeyEnter) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonUp, window.GetKey(glfw.KeyUp) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonDown, window.GetKey(glfw.KeyDown) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonLeft, window.GetKey(glfw.KeyLeft) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonRight, window.GetKey(glfw.KeyRight) == glfw.Press)
+}
+
+func Run(machine *nes.NES) {
 	err := glfw.Init()
 	if err != nil {
 		panic(err)
@@ -86,8 +97,11 @@ func Run(nes *nes.NES) {
 	texture := createTexture()
 
 	for !window.ShouldClose() {
-		nes.StepFrame()
-		setTexture(texture, nes.Buffer())
+		// step emulator
+		readKeys(window, machine)
+		machine.StepFrame()
+		setTexture(texture, machine.Buffer())
+		// render frame
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		drawQuad(window)
 		window.SwapBuffers()

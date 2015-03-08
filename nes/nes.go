@@ -1,14 +1,19 @@
 package nes
 
-import "image"
+import (
+	"image"
+	"log"
+)
 
 type NES struct {
-	CPU       *CPU
-	PPU       *PPU
-	CPUMemory Memory
-	PPUMemory Memory
-	RAM       []byte
-	Cartridge *Cartridge
+	CPU         *CPU
+	PPU         *PPU
+	CPUMemory   Memory
+	PPUMemory   Memory
+	RAM         []byte
+	Cartridge   *Cartridge
+	Controller1 *Controller
+	Controller2 *Controller
 }
 
 func NewNES(path string) (*NES, error) {
@@ -17,7 +22,9 @@ func NewNES(path string) (*NES, error) {
 		return nil, err
 	}
 	ram := make([]byte, 2048)
-	nes := NES{nil, nil, nil, nil, ram, cartridge}
+	controller1 := NewController()
+	controller2 := NewController()
+	nes := NES{nil, nil, nil, nil, ram, cartridge, controller1, controller2}
 	nes.CPUMemory = NewCPUMemory(&nes)
 	nes.PPUMemory = NewPPUMemory(&nes)
 	nes.CPU = NewCPU(&nes)
@@ -44,4 +51,15 @@ func (nes *NES) StepFrame() {
 
 func (nes *NES) Buffer() *image.RGBA {
 	return nes.PPU.buffer
+}
+
+func (nes *NES) SetPressed(controller, button int, pressed bool) {
+	switch controller {
+	case 1:
+		nes.Controller1.SetPressed(button, pressed)
+	case 2:
+		nes.Controller2.SetPressed(button, pressed)
+	default:
+		log.Fatalf("unhandled controller press: %d", controller)
+	}
 }
