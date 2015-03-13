@@ -14,6 +14,13 @@ type PPU struct {
 	Frame         uint64 // frame counter
 	VerticalBlank byte   // vertical blank status
 
+	// PPU registers
+	v uint16 // current vram address (15 bit)
+	t uint16 // temporary vram address (15 bit)
+	x byte   // fine x scroll (3 bit)
+	w byte   // write toggle (1 bit)
+	f byte   // even/odd frame flag (1 bit)
+
 	// $2000 PPUCTRL
 	flagNameTable       byte // 0: $2000; 1: $2400; 2: $2800; 3: $2C00
 	flagIncrement       byte // 0: add 1; 1: add 32
@@ -37,19 +44,19 @@ type PPU struct {
 	oamAddress byte
 
 	// $2004 OAMDATA
-	oamData [256]byte
+	oamPrimary   [256]byte
+	oamSecondary [32]byte
 
 	// $2005 PPUSCROLL
 	scroll uint16 // x & y scrolling coordinates
-
-	// $2006 PPUADDR
-	address uint16 // address used by $2007 PPUDATA
 
 	// $2007 PPUDATA
 	data byte // for buffered reads
 
 	paletteData   [32]byte
 	nameTableData [2048]byte
+	tileData      [128]byte
+	tileIndex     byte
 
 	buffer *image.RGBA // color buffer
 }
@@ -117,6 +124,8 @@ func (ppu *PPU) writeControl(value byte) {
 	ppu.flagSpriteSize = (value >> 5) & 1
 	ppu.flagMasterSlave = (value >> 6) & 1
 	ppu.flagGenerateNMI = (value >> 7) & 1
+	// t: ....BA.. ........ = d: ......BA
+	ppu.t = (ppu.t & 0xF3FF) | ((uint16(value) & 0x03) << 10)
 }
 
 // $2001: PPUMASK
@@ -136,6 +145,8 @@ func (ppu *PPU) readStatus() byte {
 	var result byte
 	result |= ppu.VerticalBlank << 7
 	ppu.VerticalBlank = 0
+	// w:                   = 0
+	ppu.w = 0
 	return result
 }
 
@@ -146,12 +157,12 @@ func (ppu *PPU) writeOAMAddress(value byte) {
 
 // $2004: OAMDATA (read)
 func (ppu *PPU) readOAMData() byte {
-	return ppu.oamData[ppu.oamAddress]
+	return ppu.oamPrimary[ppu.oamAddress]
 }
 
 // $2004: OAMDATA (write)
 func (ppu *PPU) writeOAMData(value byte) {
-	ppu.oamData[ppu.oamAddress] = value
+	ppu.oamPrimary[ppu.oamAddress] = value
 	ppu.oamAddress++
 }
 
@@ -159,41 +170,67 @@ func (ppu *PPU) writeOAMData(value byte) {
 func (ppu *PPU) writeScroll(value byte) {
 	ppu.scroll <<= 8
 	ppu.scroll |= uint16(value)
+	if ppu.w == 0 {
+		// t: ........ ...HGFED = d: HGFED...
+		// x:               CBA = d: .....CBA
+		// w:                   = 1
+		ppu.t = (ppu.t & 0xFFE0) | (uint16(value) >> 3)
+		ppu.x = value & 0x07
+		ppu.w = 1
+	} else {
+		// t: .CBA..HG FED..... = d: HGFEDCBA
+		// w:                   = 0
+		ppu.t = (ppu.t & 0x8FFF) | ((uint16(value) & 0x03) << 12)
+		ppu.t = (ppu.t & 0xFC1F) | ((uint16(value) & 0xF8) << 2)
+		ppu.w = 0
+	}
 }
 
 // $2006: PPUADDR
 func (ppu *PPU) writeAddress(value byte) {
-	ppu.address <<= 8
-	ppu.address |= uint16(value)
+	if ppu.w == 0 {
+		// t: ..FEDCBA ........ = d: ..FEDCBA
+		// t: .X...... ........ = 0
+		// w:                   = 1
+		ppu.t = (ppu.t & 0x80FF) | ((uint16(value) & 0x3F) << 8)
+		ppu.w = 1
+	} else {
+		// t: ........ HGFEDCBA = d: HGFEDCBA
+		// v                    = t
+		// w:                   = 0
+		ppu.t = (ppu.t & 0xFF00) | uint16(value)
+		ppu.v = ppu.t
+		ppu.w = 0
+	}
 }
 
 // $2007: PPUDATA (read)
 func (ppu *PPU) readData() byte {
-	value := ppu.Read(ppu.address)
+	value := ppu.Read(ppu.v)
 	// emulate buffered reads
-	if ppu.address%0x4000 < 0x3F00 {
+	if ppu.v%0x4000 < 0x3F00 {
 		buffered := ppu.data
 		ppu.data = value
 		value = buffered
 	} else {
-		ppu.data = ppu.Read(ppu.address - 0x1000)
+		ppu.data = ppu.Read(ppu.v - 0x1000)
 	}
 	// increment address
 	if ppu.flagIncrement == 0 {
-		ppu.address += 1
+		ppu.v += 1
 	} else {
-		ppu.address += 32
+		ppu.v += 32
 	}
 	return value
 }
 
 // $2007: PPUDATA (write)
 func (ppu *PPU) writeData(value byte) {
-	ppu.Write(ppu.address, value)
+	ppu.Write(ppu.v, value)
 	if ppu.flagIncrement == 0 {
-		ppu.address += 1
+		ppu.v += 1
 	} else {
-		ppu.address += 32
+		ppu.v += 32
 	}
 }
 
@@ -203,7 +240,7 @@ func (ppu *PPU) writeDMA(value byte) {
 	cpu := ppu.nes.CPU
 	address := uint16(value) << 8
 	for i := 0; i < 256; i++ {
-		ppu.oamData[ppu.oamAddress] = cpu.Read(address)
+		ppu.oamPrimary[ppu.oamAddress] = cpu.Read(address)
 		ppu.oamAddress++
 		address++
 	}
@@ -223,6 +260,46 @@ func (ppu *PPU) writePalette(address uint16, value byte) {
 	ppu.paletteData[address] = value
 }
 
+func (ppu *PPU) incrementX() {
+	// if coarse X == 31
+	if ppu.v&0x001F == 31 {
+		// coarse X = 0
+		ppu.v &= 0xFFE0
+		// switch horizontal nametable
+		ppu.v ^= 0x0400
+	} else {
+		// increment coarse X
+		ppu.v++
+	}
+}
+
+func (ppu *PPU) incrementY() {
+	// if fine Y < 7
+	if ppu.v&0x7000 != 0x7000 {
+		// increment fine Y
+		ppu.v += 0x1000
+	} else {
+		// fine Y = 0
+		ppu.v &= 0x8FFF
+		// let y = coarse Y
+		y := (ppu.v & 0x03E0) >> 5
+		if y == 29 {
+			// coarse Y = 0
+			y = 0
+			// switch vertical nametable
+			ppu.v ^= 0x0800
+		} else if y == 31 {
+			// coarse Y = 0, nametable not switched
+			y = 0
+		} else {
+			// increment coarse Y
+			y += 1
+			// put coarse Y back into v
+			ppu.v = (ppu.v & 0xFC1F) | (y << 5)
+		}
+	}
+}
+
 // tick updates Cycle, ScanLine and Frame counters
 func (ppu *PPU) tick() {
 	ppu.Cycle++
@@ -232,13 +309,58 @@ func (ppu *PPU) tick() {
 		if ppu.ScanLine > 261 {
 			ppu.ScanLine = 0
 			ppu.Frame++
+			ppu.f ^= 1
 		}
+	}
+	if ppu.f == 1 && ppu.ScanLine == 0 && ppu.Cycle == 0 {
+		ppu.Cycle++
 	}
 }
 
 // Step executes a single PPU cycle
 func (ppu *PPU) Step() {
 	ppu.tick()
+
+	// if rendering is enabled
+	if ppu.flagShowBackground != 0 || ppu.flagShowSprites != 0 {
+		// fetch tile data
+		if ppu.ScanLine < 240 || ppu.ScanLine == 261 {
+			if ppu.Cycle < 249 || (ppu.Cycle >= 321 && ppu.Cycle < 337) {
+				if ppu.Cycle%2 == 1 {
+				}
+			}
+		}
+
+		// pre-render line
+		if ppu.ScanLine == 261 {
+			if ppu.Cycle >= 280 && ppu.Cycle <= 304 {
+				// vert(v) = vert(t)
+				// v: .IHGF.ED CBA..... = t: .IHGF.ED CBA.....
+				ppu.v = (ppu.v & 0x841F) | (ppu.t & 0x7BE0)
+			}
+		}
+
+		// pre-render and render lines
+		if ppu.ScanLine < 240 || ppu.ScanLine == 261 {
+			if (ppu.Cycle <= 256 || ppu.Cycle >= 328) && ppu.Cycle%8 == 0 {
+				// increment hori(v)
+				ppu.incrementX()
+			}
+			if ppu.Cycle == 256 {
+				// increment vert(v)
+				ppu.incrementY()
+			}
+			if ppu.Cycle == 257 {
+				// hori(v) = hori(t)
+				// v: .....F.. ...EDCBA = t: .....F.. ...EDCBA
+				ppu.v = (ppu.v & 0xFBE0) | (ppu.t & 0x041F)
+			}
+		}
+	}
+
+	// tile address      = 0x2000 | (v & 0x0FFF)
+	// attribute address = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07)
+
 	if ppu.Cycle == 1 && ppu.ScanLine < 240 {
 		ppu.renderScanLine()
 	}
@@ -312,10 +434,10 @@ func (ppu *PPU) renderSpriteLine() []byte {
 	result := make([]byte, 256)
 	for i := 0; i < 64; i++ {
 		index := i * 4
-		y := ppu.oamData[index+0]
-		t := ppu.oamData[index+1]
-		f := ppu.oamData[index+2]
-		x := ppu.oamData[index+3]
+		y := ppu.oamPrimary[index+0]
+		t := ppu.oamPrimary[index+1]
+		f := ppu.oamPrimary[index+2]
+		x := ppu.oamPrimary[index+3]
 		row := int(y) - ppu.ScanLine
 		if row < 0 || row > 7 {
 			continue
