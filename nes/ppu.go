@@ -14,12 +14,24 @@ type PPU struct {
 	Frame         uint64 // frame counter
 	VerticalBlank byte   // vertical blank status
 
+	// storage variables
+	paletteData   [32]byte
+	nameTableData [2048]byte
+	buffer        *image.RGBA
+
 	// PPU registers
 	v uint16 // current vram address (15 bit)
 	t uint16 // temporary vram address (15 bit)
 	x byte   // fine x scroll (3 bit)
 	w byte   // write toggle (1 bit)
 	f byte   // even/odd frame flag (1 bit)
+
+	// temporary variables
+	nameTableByte      byte
+	attributeTableByte byte
+	lowTileByte        byte
+	highTileByte       byte
+	tileData           uint64
 
 	// $2000 PPUCTRL
 	flagNameTable       byte // 0: $2000; 1: $2400; 2: $2800; 3: $2C00
@@ -51,14 +63,7 @@ type PPU struct {
 	scroll uint16 // x & y scrolling coordinates
 
 	// $2007 PPUDATA
-	data byte // for buffered reads
-
-	paletteData   [32]byte
-	nameTableData [2048]byte
-	tileData      [128]byte
-	tileIndex     byte
-
-	buffer *image.RGBA // color buffer
+	bufferedData byte // for buffered reads
 }
 
 func NewPPU(nes *NES) *PPU {
@@ -180,7 +185,7 @@ func (ppu *PPU) writeScroll(value byte) {
 	} else {
 		// t: .CBA..HG FED..... = d: HGFEDCBA
 		// w:                   = 0
-		ppu.t = (ppu.t & 0x8FFF) | ((uint16(value) & 0x03) << 12)
+		ppu.t = (ppu.t & 0x8FFF) | ((uint16(value) & 0x07) << 12)
 		ppu.t = (ppu.t & 0xFC1F) | ((uint16(value) & 0xF8) << 2)
 		ppu.w = 0
 	}
@@ -209,11 +214,11 @@ func (ppu *PPU) readData() byte {
 	value := ppu.Read(ppu.v)
 	// emulate buffered reads
 	if ppu.v%0x4000 < 0x3F00 {
-		buffered := ppu.data
-		ppu.data = value
+		buffered := ppu.bufferedData
+		ppu.bufferedData = value
 		value = buffered
 	} else {
-		ppu.data = ppu.Read(ppu.v - 0x1000)
+		ppu.bufferedData = ppu.Read(ppu.v - 0x1000)
 	}
 	// increment address
 	if ppu.flagIncrement == 0 {
@@ -260,7 +265,10 @@ func (ppu *PPU) writePalette(address uint16, value byte) {
 	ppu.paletteData[address] = value
 }
 
+// NTSC Timing Helper Functions
+
 func (ppu *PPU) incrementX() {
+	// increment hori(v)
 	// if coarse X == 31
 	if ppu.v&0x001F == 31 {
 		// coarse X = 0
@@ -274,6 +282,7 @@ func (ppu *PPU) incrementX() {
 }
 
 func (ppu *PPU) incrementY() {
+	// increment vert(v)
 	// if fine Y < 7
 	if ppu.v&0x7000 != 0x7000 {
 		// increment fine Y
@@ -293,11 +302,85 @@ func (ppu *PPU) incrementY() {
 			y = 0
 		} else {
 			// increment coarse Y
-			y += 1
-			// put coarse Y back into v
-			ppu.v = (ppu.v & 0xFC1F) | (y << 5)
+			y++
 		}
+		// put coarse Y back into v
+		ppu.v = (ppu.v & 0xFC1F) | (y << 5)
 	}
+}
+
+func (ppu *PPU) copyX() {
+	// hori(v) = hori(t)
+	// v: .....F.. ...EDCBA = t: .....F.. ...EDCBA
+	ppu.v = (ppu.v & 0xFBE0) | (ppu.t & 0x041F)
+}
+
+func (ppu *PPU) copyY() {
+	// vert(v) = vert(t)
+	// v: .IHGF.ED CBA..... = t: .IHGF.ED CBA.....
+	ppu.v = (ppu.v & 0x841F) | (ppu.t & 0x7BE0)
+}
+
+func (ppu *PPU) setVerticalBlank() {
+	ppu.VerticalBlank = 1
+	if ppu.flagGenerateNMI != 0 {
+		ppu.nes.CPU.triggerNMI()
+	}
+}
+
+func (ppu *PPU) clearVerticalBlank() {
+	ppu.VerticalBlank = 0
+}
+
+func (ppu *PPU) fetchNameTableByte() {
+	v := ppu.v
+	address := 0x2000 | (v & 0x0FFF)
+	ppu.nameTableByte = ppu.Read(address)
+}
+
+func (ppu *PPU) fetchAttributeTableByte() {
+	v := ppu.v
+	address := 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07)
+	shift := ((v >> 4) & 4) | (v & 2)
+	ppu.attributeTableByte = ((ppu.Read(address) >> shift) & 3) << 2
+}
+
+func (ppu *PPU) fetchLowTileByte() {
+	fineY := (ppu.v >> 12) & 7
+	address := 0x1000*uint16(ppu.flagBackgroundTable) + uint16(ppu.nameTableByte)*16 + fineY
+	ppu.lowTileByte = ppu.Read(address)
+}
+
+func (ppu *PPU) fetchHighTileByte() {
+	fineY := (ppu.v >> 12) & 7
+	address := 0x1000*uint16(ppu.flagBackgroundTable) + uint16(ppu.nameTableByte)*16 + fineY
+	ppu.highTileByte = ppu.Read(address + 8)
+}
+
+func (ppu *PPU) storeTileData() {
+	var data uint32
+	for i := 0; i < 8; i++ {
+		a := ppu.attributeTableByte
+		p1 := (ppu.lowTileByte & 0x80) >> 7
+		p2 := (ppu.highTileByte & 0x80) >> 6
+		ppu.lowTileByte <<= 1
+		ppu.highTileByte <<= 1
+		data <<= 4
+		data |= uint32(a | p1 | p2)
+	}
+	ppu.tileData |= uint64(data)
+}
+
+func (ppu *PPU) fetchTileData() uint32 {
+	return uint32(ppu.tileData >> 32)
+}
+
+func (ppu *PPU) renderPixel() {
+	data := ppu.fetchTileData() >> ((7 - ppu.x) * 4)
+	y := ppu.ScanLine
+	x := ppu.Cycle - 1
+	c := palette[ppu.readPalette(uint16(data&0x0F))]
+	ppu.buffer.SetRGBA(x, y, c)
 }
 
 // tick updates Cycle, ScanLine and Frame counters
@@ -321,176 +404,173 @@ func (ppu *PPU) tick() {
 func (ppu *PPU) Step() {
 	ppu.tick()
 
-	// if rendering is enabled
-	if ppu.flagShowBackground != 0 || ppu.flagShowSprites != 0 {
-		// fetch tile data
-		if ppu.ScanLine < 240 || ppu.ScanLine == 261 {
-			if ppu.Cycle < 249 || (ppu.Cycle >= 321 && ppu.Cycle < 337) {
-				if ppu.Cycle%2 == 1 {
-				}
+	renderingEnabled := ppu.flagShowBackground != 0 || ppu.flagShowSprites != 0
+	preLine := ppu.ScanLine == 261
+	visibleLine := ppu.ScanLine < 240
+	// postLine := ppu.ScanLine == 240
+	renderLine := preLine || visibleLine
+	preFetchCycle := ppu.Cycle >= 321 && ppu.Cycle <= 336
+	visibleCycle := ppu.Cycle >= 1 && ppu.Cycle <= 256
+	fetchCycle := preFetchCycle || visibleCycle
+
+	if renderingEnabled {
+		if visibleLine && visibleCycle {
+			ppu.renderPixel()
+		}
+		if renderLine && fetchCycle {
+			ppu.tileData <<= 4
+			switch ppu.Cycle % 8 {
+			case 1:
+				ppu.fetchNameTableByte()
+			case 3:
+				ppu.fetchAttributeTableByte()
+			case 5:
+				ppu.fetchLowTileByte()
+			case 7:
+				ppu.fetchHighTileByte()
+				ppu.storeTileData()
 			}
 		}
-
-		// pre-render line
-		if ppu.ScanLine == 261 {
-			if ppu.Cycle >= 280 && ppu.Cycle <= 304 {
-				// vert(v) = vert(t)
-				// v: .IHGF.ED CBA..... = t: .IHGF.ED CBA.....
-				ppu.v = (ppu.v & 0x841F) | (ppu.t & 0x7BE0)
-			}
+		if preLine && ppu.Cycle >= 280 && ppu.Cycle <= 304 {
+			ppu.copyY()
 		}
-
-		// pre-render and render lines
-		if ppu.ScanLine < 240 || ppu.ScanLine == 261 {
-			if (ppu.Cycle <= 256 || ppu.Cycle >= 328) && ppu.Cycle%8 == 0 {
-				// increment hori(v)
+		if renderLine {
+			if fetchCycle && ppu.Cycle%8 == 0 {
 				ppu.incrementX()
 			}
 			if ppu.Cycle == 256 {
-				// increment vert(v)
 				ppu.incrementY()
 			}
 			if ppu.Cycle == 257 {
-				// hori(v) = hori(t)
-				// v: .....F.. ...EDCBA = t: .....F.. ...EDCBA
-				ppu.v = (ppu.v & 0xFBE0) | (ppu.t & 0x041F)
+				ppu.copyX()
 			}
 		}
 	}
 
-	// tile address      = 0x2000 | (v & 0x0FFF)
-	// attribute address = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07)
-
-	if ppu.Cycle == 1 && ppu.ScanLine < 240 {
-		ppu.renderScanLine()
+	if ppu.ScanLine == 241 && ppu.Cycle == 1 {
+		ppu.setVerticalBlank()
 	}
-	if ppu.Cycle == 1 && ppu.ScanLine == 241 {
-		ppu.VerticalBlank = 1
-		if ppu.flagGenerateNMI != 0 {
-			ppu.nes.CPU.triggerNMI()
-		}
-	}
-	if ppu.Cycle == 1 && ppu.ScanLine == 261 {
-		ppu.VerticalBlank = 0
+	if preLine && ppu.Cycle == 1 {
+		ppu.clearVerticalBlank()
 	}
 }
 
-func (ppu *PPU) pattern(attribute, patternTable, pattern, row int) [8]byte {
-	patternAddress1 := uint16(0x1000*patternTable + pattern*16 + row)
-	patternAddress2 := patternAddress1 + 8
-	pattern1 := ppu.Read(patternAddress1)
-	pattern2 := ppu.Read(patternAddress2)
-	var result [8]byte
-	for i := 0; i < 8; i++ {
-		p1 := (pattern1 & 1)
-		p2 := (pattern2 & 1) << 1
-		index := byte(attribute) | p1 | p2
-		result[7-i] = ppu.readPalette(uint16(index))
-		pattern1 >>= 1
-		pattern2 >>= 1
-	}
-	return result
-}
+// func (ppu *PPU) pattern(attribute, patternTable, pattern, row int) [8]byte {
+// 	patternAddress1 := uint16(0x1000*patternTable + pattern*16 + row)
+// 	patternAddress2 := patternAddress1 + 8
+// 	pattern1 := ppu.Read(patternAddress1)
+// 	pattern2 := ppu.Read(patternAddress2)
+// 	var result [8]byte
+// 	for i := 0; i < 8; i++ {
+// 		p1 := (pattern1 & 1)
+// 		p2 := (pattern2 & 1) << 1
+// 		index := byte(attribute) | p1 | p2
+// 		result[7-i] = ppu.readPalette(uint16(index))
+// 		pattern1 >>= 1
+// 		pattern2 >>= 1
+// 	}
+// 	return result
+// }
 
-func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
-	gx := x / 4
-	gy := y / 4
-	sx := (x % 4) / 2
-	sy := (y % 4) / 2
-	address := uint16(0x23c0 + 0x400*nameTable + gy*8 + gx)
-	attribute := ppu.Read(address)
-	shift := byte((sy*2 + sx) * 2)
-	return (attribute >> shift) & 3
-}
+// func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
+// 	gx := x / 4
+// 	gy := y / 4
+// 	sx := (x % 4) / 2
+// 	sy := (y % 4) / 2
+// 	address := uint16(0x23c0 + 0x400*nameTable + gy*8 + gx)
+// 	attribute := ppu.Read(address)
+// 	shift := byte((sy*2 + sx) * 2)
+// 	return (attribute >> shift) & 3
+// }
 
-func (ppu *PPU) tilePattern(attribute, nameTable, x, y, row int) [8]byte {
-	index := y*32 + x
-	address := uint16(0x2000 + 0x400*nameTable + index)
-	pattern := int(ppu.Read(address))
-	patternTable := int(ppu.flagBackgroundTable)
-	return ppu.pattern(attribute, patternTable, pattern, row)
-}
+// func (ppu *PPU) tilePattern(attribute, nameTable, x, y, row int) [8]byte {
+// 	index := y*32 + x
+// 	address := uint16(0x2000 + 0x400*nameTable + index)
+// 	pattern := int(ppu.Read(address))
+// 	patternTable := int(ppu.flagBackgroundTable)
+// 	return ppu.pattern(attribute, patternTable, pattern, row)
+// }
 
-func (ppu *PPU) tileRow(nameTable, x, y, row int) [8]byte {
-	attribute := int(ppu.tileAttribute(nameTable, x, y) << 2)
-	return ppu.tilePattern(attribute, nameTable, x, y, row)
-}
+// func (ppu *PPU) tileRow(nameTable, x, y, row int) [8]byte {
+// 	attribute := int(ppu.tileAttribute(nameTable, x, y) << 2)
+// 	return ppu.tilePattern(attribute, nameTable, x, y, row)
+// }
 
-func (ppu *PPU) renderNameTableLine(nameTable, y int) []byte {
-	result := make([]byte, 256)
-	ty := y / 8
-	row := y % 8
-	for tx := 0; tx < 32; tx++ {
-		tile := ppu.tileRow(nameTable, tx, ty, row)
-		for i := 0; i < 8; i++ {
-			x := tx*8 + i
-			result[x] = tile[i]
-		}
-	}
-	return result
-}
+// func (ppu *PPU) renderNameTableLine(nameTable, y int) []byte {
+// 	result := make([]byte, 256)
+// 	ty := y / 8
+// 	row := y % 8
+// 	for tx := 0; tx < 32; tx++ {
+// 		tile := ppu.tileRow(nameTable, tx, ty, row)
+// 		for i := 0; i < 8; i++ {
+// 			x := tx*8 + i
+// 			result[x] = tile[i]
+// 		}
+// 	}
+// 	return result
+// }
 
-func (ppu *PPU) renderSpriteLine() []byte {
-	result := make([]byte, 256)
-	for i := 0; i < 64; i++ {
-		index := i * 4
-		y := ppu.oamPrimary[index+0]
-		t := ppu.oamPrimary[index+1]
-		f := ppu.oamPrimary[index+2]
-		x := ppu.oamPrimary[index+3]
-		row := int(y) - ppu.ScanLine
-		if row < 0 || row > 7 {
-			continue
-		}
-		pattern := t
-		bank := ppu.flagSpriteTable
-		if ppu.flagSpriteSize == 1 {
-			bank = t & 1
-			pattern = t & 0xFE
-		}
-		attribute := (f&3)<<2 | 16
-		tile := ppu.pattern(int(attribute), int(bank), int(pattern), row)
-		for j := 0; j < 8; j++ {
-			index := int(x) + j
-			if index > 255 {
-				continue
-			}
-			if result[index]%4 == 0 {
-				result[index] = tile[j]
-			}
-		}
-	}
-	return result
-}
+// func (ppu *PPU) renderSpriteLine() []byte {
+// 	result := make([]byte, 256)
+// 	for i := 0; i < 64; i++ {
+// 		index := i * 4
+// 		y := ppu.oamPrimary[index+0]
+// 		t := ppu.oamPrimary[index+1]
+// 		f := ppu.oamPrimary[index+2]
+// 		x := ppu.oamPrimary[index+3]
+// 		row := int(y) - ppu.ScanLine
+// 		if row < 0 || row > 7 {
+// 			continue
+// 		}
+// 		pattern := t
+// 		bank := ppu.flagSpriteTable
+// 		if ppu.flagSpriteSize == 1 {
+// 			bank = t & 1
+// 			pattern = t & 0xFE
+// 		}
+// 		attribute := (f&3)<<2 | 16
+// 		tile := ppu.pattern(int(attribute), int(bank), int(pattern), row)
+// 		for j := 0; j < 8; j++ {
+// 			index := int(x) + j
+// 			if index > 255 {
+// 				continue
+// 			}
+// 			if result[index]%4 == 0 {
+// 				result[index] = tile[j]
+// 			}
+// 		}
+// 	}
+// 	return result
+// }
 
-func (ppu *PPU) renderScanLine() {
-	sx := int(ppu.scroll >> 8)
-	sy := int(ppu.scroll & 0xFF)
+// func (ppu *PPU) renderScanLine() {
+// 	sx := int(ppu.scroll >> 8)
+// 	sy := int(ppu.scroll & 0xFF)
 
-	y := ppu.ScanLine + sy
-	nameTable := int(ppu.flagNameTable)
-	if y >= 240 {
-		y -= 240
-		nameTable += 2
-	}
-	nameTable1 := (nameTable + 0) % 4
-	nameTable2 := (nameTable + 1) % 4
+// 	y := ppu.ScanLine + sy
+// 	nameTable := int(ppu.flagNameTable)
+// 	if y >= 240 {
+// 		y -= 240
+// 		nameTable += 2
+// 	}
+// 	nameTable1 := (nameTable + 0) % 4
+// 	nameTable2 := (nameTable + 1) % 4
 
-	line1 := ppu.renderNameTableLine(nameTable1, y)
-	line2 := ppu.renderNameTableLine(nameTable2, y)
-	line := make([]byte, 0, 512)
-	line = append(line, line1...)
-	line = append(line, line2...)
-	sprites := ppu.renderSpriteLine()
+// 	line1 := ppu.renderNameTableLine(nameTable1, y)
+// 	line2 := ppu.renderNameTableLine(nameTable2, y)
+// 	line := make([]byte, 0, 512)
+// 	line = append(line, line1...)
+// 	line = append(line, line2...)
+// 	sprites := ppu.renderSpriteLine()
 
-	for i := 0; i < 256; i++ {
-		background := line[sx+i]
-		sprite := sprites[i]
-		p := sprite
-		if sprite%4 == 0 {
-			p = background
-		}
-		c := palette[p]
-		ppu.buffer.SetRGBA(i, ppu.ScanLine, c)
-	}
-}
+// 	for i := 0; i < 256; i++ {
+// 		background := line[sx+i]
+// 		sprite := sprites[i]
+// 		p := sprite
+// 		if sprite%4 == 0 {
+// 			p = background
+// 		}
+// 		c := palette[p]
+// 		ppu.buffer.SetRGBA(i, ppu.ScanLine, c)
+// 	}
+// }
