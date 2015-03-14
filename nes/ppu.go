@@ -354,13 +354,17 @@ func (ppu *PPU) fetchAttributeTableByte() {
 
 func (ppu *PPU) fetchLowTileByte() {
 	fineY := (ppu.v >> 12) & 7
-	address := 0x1000*uint16(ppu.flagBackgroundTable) + uint16(ppu.nameTableByte)*16 + fineY
+	table := ppu.flagBackgroundTable
+	tile := ppu.nameTableByte
+	address := 0x1000*uint16(table) + uint16(tile)*16 + fineY
 	ppu.lowTileByte = ppu.Read(address)
 }
 
 func (ppu *PPU) fetchHighTileByte() {
 	fineY := (ppu.v >> 12) & 7
-	address := 0x1000*uint16(ppu.flagBackgroundTable) + uint16(ppu.nameTableByte)*16 + fineY
+	table := ppu.flagBackgroundTable
+	tile := ppu.nameTableByte
+	address := 0x1000*uint16(table) + uint16(tile)*16 + fineY
 	ppu.highTileByte = ppu.Read(address + 8)
 }
 
@@ -574,11 +578,13 @@ func (ppu *PPU) Step() {
 	}
 
 	// sprite logic
-	if renderingEnabled && visibleLine && ppu.Cycle == 257 {
+	if renderingEnabled {
 		if preLine && ppu.Cycle == 1 {
 			ppu.flagSpriteZeroHit = 0
 		}
-		ppu.evaluateSprites()
+		if visibleLine && ppu.Cycle == 257 {
+			ppu.evaluateSprites()
+		}
 	}
 
 	// vblank logic
