@@ -432,7 +432,7 @@ func (ppu *PPU) renderPixel() {
 	}
 	y := ppu.ScanLine
 	x := ppu.Cycle - 1
-	c := palette[ppu.readPalette(uint16(color))]
+	c := palette[ppu.readPalette(uint16(color))%64]
 	ppu.buffer.SetRGBA(x, y, c)
 }
 
