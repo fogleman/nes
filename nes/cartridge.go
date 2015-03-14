@@ -8,6 +8,13 @@ const (
 	MirrorQuad       = 2
 )
 
+var MirrorLookup [4][4]uint16 = [4][4]uint16{
+	{0, 0, 1, 1},
+	{0, 1, 0, 1},
+	{0, 0, 0, 0},
+	{0, 1, 2, 3},
+}
+
 type Cartridge struct {
 	PRG      []byte // PRG-ROM banks
 	CHR      []byte // CHR-ROM banks
@@ -33,6 +40,13 @@ func NewCartridge(prg, chr []byte, mapper, mirror, battery byte) *Cartridge {
 		prg, chr, sram, mapper, mirror, battery,
 		prgBanks, chrBanks, prgBank1, prgBank2, chrBank}
 	return &cartridge
+}
+
+func (c *Cartridge) NameTableAddress(address uint16) uint16 {
+	address = (address - 0x2000) % 0x1000
+	table := address / 0x0400
+	offset := address % 0x0400
+	return 0x2000 + MirrorLookup[c.Mirror][table]*0x0400 + offset
 }
 
 func (c *Cartridge) Read(address uint16) byte {
