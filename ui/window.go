@@ -33,6 +33,7 @@ func createTexture() uint32 {
 
 func setTexture(texture uint32, im *image.RGBA) {
 	size := im.Rect.Size()
+	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexImage2D(
 		gl.TEXTURE_2D, 0, gl.RGBA,
 		int32(size.X), int32(size.Y),
@@ -63,15 +64,19 @@ func drawQuad(window *glfw.Window) {
 	gl.End()
 }
 
+func readKey(window *glfw.Window, key glfw.Key) bool {
+	return window.GetKey(key) == glfw.Press
+}
+
 func readKeys(window *glfw.Window, machine *nes.NES) {
-	machine.SetPressed(1, nes.ButtonA, window.GetKey(glfw.KeyZ) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonB, window.GetKey(glfw.KeyX) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonSelect, window.GetKey(glfw.KeyRightShift) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonStart, window.GetKey(glfw.KeyEnter) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonUp, window.GetKey(glfw.KeyUp) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonDown, window.GetKey(glfw.KeyDown) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonLeft, window.GetKey(glfw.KeyLeft) == glfw.Press)
-	machine.SetPressed(1, nes.ButtonRight, window.GetKey(glfw.KeyRight) == glfw.Press)
+	machine.SetPressed(1, nes.ButtonA, readKey(window, glfw.KeyZ))
+	machine.SetPressed(1, nes.ButtonB, readKey(window, glfw.KeyX))
+	machine.SetPressed(1, nes.ButtonSelect, readKey(window, glfw.KeyRightShift))
+	machine.SetPressed(1, nes.ButtonStart, readKey(window, glfw.KeyEnter))
+	machine.SetPressed(1, nes.ButtonUp, readKey(window, glfw.KeyUp))
+	machine.SetPressed(1, nes.ButtonDown, readKey(window, glfw.KeyDown))
+	machine.SetPressed(1, nes.ButtonLeft, readKey(window, glfw.KeyLeft))
+	machine.SetPressed(1, nes.ButtonRight, readKey(window, glfw.KeyRight))
 }
 
 func Run(machine *nes.NES) {
