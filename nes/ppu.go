@@ -17,6 +17,7 @@ type PPU struct {
 	// storage variables
 	paletteData   [32]byte
 	nameTableData [2048]byte
+	oamData       [256]byte
 	buffer        *image.RGBA
 
 	// PPU registers
@@ -26,12 +27,18 @@ type PPU struct {
 	w byte   // write toggle (1 bit)
 	f byte   // even/odd frame flag (1 bit)
 
-	// temporary variables
+	// background temporary variables
 	nameTableByte      byte
 	attributeTableByte byte
 	lowTileByte        byte
 	highTileByte       byte
 	tileData           uint64
+
+	// sprite temporary variables
+	spriteCount      int
+	spritePatterns   [8]uint32
+	spritePositions  [8]byte
+	spritePriorities [8]byte
 
 	// $2000 PPUCTRL
 	flagNameTable       byte // 0: $2000; 1: $2400; 2: $2800; 3: $2C00
@@ -52,12 +59,11 @@ type PPU struct {
 	flagGreenTint          byte // 0: normal; 1: emphasized
 	flagBlueTint           byte // 0: normal; 1: emphasized
 
+	// $2002 PPUSTATUS
+	flagSpriteZeroHit byte
+
 	// $2003 OAMADDR
 	oamAddress byte
-
-	// $2004 OAMDATA
-	oamPrimary   [256]byte
-	oamSecondary [32]byte
 
 	// $2005 PPUSCROLL
 	scroll uint16 // x & y scrolling coordinates
@@ -81,6 +87,20 @@ func (ppu *PPU) Reset() {
 	ppu.writeControl(0)
 	ppu.writeMask(0)
 	ppu.writeOAMAddress(0)
+}
+
+func (ppu *PPU) readPalette(address uint16) byte {
+	if address >= 16 && address%4 == 0 {
+		address -= 16
+	}
+	return ppu.paletteData[address]
+}
+
+func (ppu *PPU) writePalette(address uint16, value byte) {
+	if address >= 16 && address%4 == 0 {
+		address -= 16
+	}
+	ppu.paletteData[address] = value
 }
 
 func (ppu *PPU) readRegister(address uint16) byte {
@@ -148,6 +168,7 @@ func (ppu *PPU) writeMask(value byte) {
 // $2002: PPUSTATUS
 func (ppu *PPU) readStatus() byte {
 	var result byte
+	result |= ppu.flagSpriteZeroHit << 6
 	result |= ppu.VerticalBlank << 7
 	ppu.VerticalBlank = 0
 	// w:                   = 0
@@ -162,12 +183,12 @@ func (ppu *PPU) writeOAMAddress(value byte) {
 
 // $2004: OAMDATA (read)
 func (ppu *PPU) readOAMData() byte {
-	return ppu.oamPrimary[ppu.oamAddress]
+	return ppu.oamData[ppu.oamAddress]
 }
 
 // $2004: OAMDATA (write)
 func (ppu *PPU) writeOAMData(value byte) {
-	ppu.oamPrimary[ppu.oamAddress] = value
+	ppu.oamData[ppu.oamAddress] = value
 	ppu.oamAddress++
 }
 
@@ -245,24 +266,10 @@ func (ppu *PPU) writeDMA(value byte) {
 	cpu := ppu.nes.CPU
 	address := uint16(value) << 8
 	for i := 0; i < 256; i++ {
-		ppu.oamPrimary[ppu.oamAddress] = cpu.Read(address)
+		ppu.oamData[ppu.oamAddress] = cpu.Read(address)
 		ppu.oamAddress++
 		address++
 	}
-}
-
-func (ppu *PPU) readPalette(address uint16) byte {
-	if address >= 16 && address%4 == 0 {
-		address -= 16
-	}
-	return ppu.paletteData[address]
-}
-
-func (ppu *PPU) writePalette(address uint16, value byte) {
-	if address >= 16 && address%4 == 0 {
-		address -= 16
-	}
-	ppu.paletteData[address] = value
 }
 
 // NTSC Timing Helper Functions
@@ -375,16 +382,137 @@ func (ppu *PPU) fetchTileData() uint32 {
 	return uint32(ppu.tileData >> 32)
 }
 
-func (ppu *PPU) renderPixel() {
+func (ppu *PPU) backgroundPixel() byte {
 	data := ppu.fetchTileData() >> ((7 - ppu.x) * 4)
+	return byte(data & 0x0F)
+}
+
+func (ppu *PPU) spritePixel() (byte, byte) {
+	for i := 0; i < ppu.spriteCount; i++ {
+		offset := ppu.Cycle - int(ppu.spritePositions[i])
+		if offset < 0 || offset > 7 {
+			continue
+		}
+		offset = 7 - offset
+		color := byte((ppu.spritePatterns[i] >> byte(offset*4)) & 0x0F)
+		if color%4 == 0 {
+			continue
+		}
+		return byte(i), color
+	}
+	return 0, 0
+}
+
+func (ppu *PPU) renderPixel() {
+	background := ppu.backgroundPixel()
+	index, sprite := ppu.spritePixel()
+	priority := ppu.spritePriorities[index]
+	b := background%4 != 0
+	s := sprite%4 != 0
+	var color byte
+	if !b && !s {
+		color = 0
+	} else if !b && s {
+		color = sprite | 0x10
+	} else if b && !s {
+		color = background
+	} else {
+		if index == 0 {
+			ppu.flagSpriteZeroHit = 1
+		}
+		if priority == 0 {
+			color = sprite | 0x10
+		} else {
+			color = background
+		}
+	}
 	y := ppu.ScanLine
 	x := ppu.Cycle - 1
-	c := palette[ppu.readPalette(uint16(data&0x0F))]
+	c := palette[ppu.readPalette(uint16(color))]
 	ppu.buffer.SetRGBA(x, y, c)
+}
+
+func (ppu *PPU) fetchSpritePattern(i, row int) uint32 {
+	tile := ppu.oamData[i*4+1]
+	attributes := ppu.oamData[i*4+2]
+	var address uint16
+	if ppu.flagSpriteSize == 0 {
+		if attributes&0x80 == 0x80 {
+			row = 7 - row
+		}
+		table := ppu.flagSpriteTable
+		address = 0x1000*uint16(table) + uint16(tile)*16 + uint16(row)
+	} else {
+		if attributes&0x80 == 0x80 {
+			row = 15 - row
+		}
+		table := tile & 1
+		tile &= 0xFE
+		if row > 7 {
+			tile++
+			row -= 8
+		}
+		address = 0x1000*uint16(table) + uint16(tile)*16 + uint16(row)
+	}
+	a := (attributes & 3) << 2
+	lowTileByte := ppu.Read(address)
+	highTileByte := ppu.Read(address + 8)
+	var data uint32
+	for i := 0; i < 8; i++ {
+		var p1, p2 byte
+		if attributes&0x40 == 0x40 {
+			p1 = (lowTileByte & 1) << 0
+			p2 = (highTileByte & 1) << 1
+			lowTileByte >>= 1
+			highTileByte >>= 1
+		} else {
+			p1 = (lowTileByte & 0x80) >> 7
+			p2 = (highTileByte & 0x80) >> 6
+			lowTileByte <<= 1
+			highTileByte <<= 1
+		}
+		data <<= 4
+		data |= uint32(a | p1 | p2)
+	}
+	return data
+}
+
+func (ppu *PPU) evaluateSprites() {
+	var h int
+	if ppu.flagSpriteSize == 0 {
+		h = 8
+	} else {
+		h = 16
+	}
+	count := 0
+	for i := 0; i < 64; i++ {
+		y := ppu.oamData[i*4+0]
+		a := ppu.oamData[i*4+2]
+		x := ppu.oamData[i*4+3]
+		row := ppu.ScanLine - int(y)
+		if row < 0 || row >= h {
+			continue
+		}
+		ppu.spritePatterns[count] = ppu.fetchSpritePattern(i, row)
+		ppu.spritePositions[count] = x
+		ppu.spritePriorities[count] = (a >> 5) & 1
+		count++
+		if count == 8 {
+			break
+		}
+	}
+	ppu.spriteCount = count
 }
 
 // tick updates Cycle, ScanLine and Frame counters
 func (ppu *PPU) tick() {
+	if ppu.f == 1 && ppu.ScanLine == 261 && ppu.Cycle == 339 {
+		ppu.Cycle = 0
+		ppu.ScanLine = 0
+		ppu.Frame++
+		ppu.f ^= 1
+		return
+	}
 	ppu.Cycle++
 	if ppu.Cycle > 340 {
 		ppu.Cycle = 0
@@ -394,9 +522,6 @@ func (ppu *PPU) tick() {
 			ppu.Frame++
 			ppu.f ^= 1
 		}
-	}
-	if ppu.f == 1 && ppu.ScanLine == 0 && ppu.Cycle == 0 {
-		ppu.Cycle++
 	}
 }
 
@@ -413,6 +538,7 @@ func (ppu *PPU) Step() {
 	visibleCycle := ppu.Cycle >= 1 && ppu.Cycle <= 256
 	fetchCycle := preFetchCycle || visibleCycle
 
+	// background logic
 	if renderingEnabled {
 		if visibleLine && visibleCycle {
 			ppu.renderPixel()
@@ -447,6 +573,15 @@ func (ppu *PPU) Step() {
 		}
 	}
 
+	// sprite logic
+	if renderingEnabled && visibleLine && ppu.Cycle == 257 {
+		if preLine && ppu.Cycle == 1 {
+			ppu.flagSpriteZeroHit = 0
+		}
+		ppu.evaluateSprites()
+	}
+
+	// vblank logic
 	if ppu.ScanLine == 241 && ppu.Cycle == 1 {
 		ppu.setVerticalBlank()
 	}
@@ -454,123 +589,3 @@ func (ppu *PPU) Step() {
 		ppu.clearVerticalBlank()
 	}
 }
-
-// func (ppu *PPU) pattern(attribute, patternTable, pattern, row int) [8]byte {
-// 	patternAddress1 := uint16(0x1000*patternTable + pattern*16 + row)
-// 	patternAddress2 := patternAddress1 + 8
-// 	pattern1 := ppu.Read(patternAddress1)
-// 	pattern2 := ppu.Read(patternAddress2)
-// 	var result [8]byte
-// 	for i := 0; i < 8; i++ {
-// 		p1 := (pattern1 & 1)
-// 		p2 := (pattern2 & 1) << 1
-// 		index := byte(attribute) | p1 | p2
-// 		result[7-i] = ppu.readPalette(uint16(index))
-// 		pattern1 >>= 1
-// 		pattern2 >>= 1
-// 	}
-// 	return result
-// }
-
-// func (ppu *PPU) tileAttribute(nameTable, x, y int) byte {
-// 	gx := x / 4
-// 	gy := y / 4
-// 	sx := (x % 4) / 2
-// 	sy := (y % 4) / 2
-// 	address := uint16(0x23c0 + 0x400*nameTable + gy*8 + gx)
-// 	attribute := ppu.Read(address)
-// 	shift := byte((sy*2 + sx) * 2)
-// 	return (attribute >> shift) & 3
-// }
-
-// func (ppu *PPU) tilePattern(attribute, nameTable, x, y, row int) [8]byte {
-// 	index := y*32 + x
-// 	address := uint16(0x2000 + 0x400*nameTable + index)
-// 	pattern := int(ppu.Read(address))
-// 	patternTable := int(ppu.flagBackgroundTable)
-// 	return ppu.pattern(attribute, patternTable, pattern, row)
-// }
-
-// func (ppu *PPU) tileRow(nameTable, x, y, row int) [8]byte {
-// 	attribute := int(ppu.tileAttribute(nameTable, x, y) << 2)
-// 	return ppu.tilePattern(attribute, nameTable, x, y, row)
-// }
-
-// func (ppu *PPU) renderNameTableLine(nameTable, y int) []byte {
-// 	result := make([]byte, 256)
-// 	ty := y / 8
-// 	row := y % 8
-// 	for tx := 0; tx < 32; tx++ {
-// 		tile := ppu.tileRow(nameTable, tx, ty, row)
-// 		for i := 0; i < 8; i++ {
-// 			x := tx*8 + i
-// 			result[x] = tile[i]
-// 		}
-// 	}
-// 	return result
-// }
-
-// func (ppu *PPU) renderSpriteLine() []byte {
-// 	result := make([]byte, 256)
-// 	for i := 0; i < 64; i++ {
-// 		index := i * 4
-// 		y := ppu.oamPrimary[index+0]
-// 		t := ppu.oamPrimary[index+1]
-// 		f := ppu.oamPrimary[index+2]
-// 		x := ppu.oamPrimary[index+3]
-// 		row := int(y) - ppu.ScanLine
-// 		if row < 0 || row > 7 {
-// 			continue
-// 		}
-// 		pattern := t
-// 		bank := ppu.flagSpriteTable
-// 		if ppu.flagSpriteSize == 1 {
-// 			bank = t & 1
-// 			pattern = t & 0xFE
-// 		}
-// 		attribute := (f&3)<<2 | 16
-// 		tile := ppu.pattern(int(attribute), int(bank), int(pattern), row)
-// 		for j := 0; j < 8; j++ {
-// 			index := int(x) + j
-// 			if index > 255 {
-// 				continue
-// 			}
-// 			if result[index]%4 == 0 {
-// 				result[index] = tile[j]
-// 			}
-// 		}
-// 	}
-// 	return result
-// }
-
-// func (ppu *PPU) renderScanLine() {
-// 	sx := int(ppu.scroll >> 8)
-// 	sy := int(ppu.scroll & 0xFF)
-
-// 	y := ppu.ScanLine + sy
-// 	nameTable := int(ppu.flagNameTable)
-// 	if y >= 240 {
-// 		y -= 240
-// 		nameTable += 2
-// 	}
-// 	nameTable1 := (nameTable + 0) % 4
-// 	nameTable2 := (nameTable + 1) % 4
-
-// 	line1 := ppu.renderNameTableLine(nameTable1, y)
-// 	line2 := ppu.renderNameTableLine(nameTable2, y)
-// 	line := make([]byte, 0, 512)
-// 	line = append(line, line1...)
-// 	line = append(line, line2...)
-// 	sprites := ppu.renderSpriteLine()
-
-// 	for i := 0; i < 256; i++ {
-// 		background := line[sx+i]
-// 		sprite := sprites[i]
-// 		p := sprite
-// 		if sprite%4 == 0 {
-// 			p = background
-// 		}
-// 		c := palette[p]
-// 		ppu.buffer.SetRGBA(i, ppu.ScanLine, c)
-// 	}
-// }
