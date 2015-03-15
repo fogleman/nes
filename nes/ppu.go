@@ -39,6 +39,7 @@ type PPU struct {
 	spritePatterns   [8]uint32
 	spritePositions  [8]byte
 	spritePriorities [8]byte
+	spriteIndexes    [8]byte
 
 	// $2000 PPUCTRL
 	flagNameTable       byte // 0: $2000; 1: $2400; 2: $2800; 3: $2C00
@@ -60,7 +61,8 @@ type PPU struct {
 	flagBlueTint           byte // 0: normal; 1: emphasized
 
 	// $2002 PPUSTATUS
-	flagSpriteZeroHit byte
+	flagSpriteZeroHit  byte
+	flagSpriteOverflow byte
 
 	// $2003 OAMADDR
 	oamAddress byte
@@ -168,6 +170,7 @@ func (ppu *PPU) writeMask(value byte) {
 // $2002: PPUSTATUS
 func (ppu *PPU) readStatus() byte {
 	var result byte
+	result |= ppu.flagSpriteOverflow << 5
 	result |= ppu.flagSpriteZeroHit << 6
 	result |= ppu.VerticalBlank << 7
 	ppu.VerticalBlank = 0
@@ -262,13 +265,16 @@ func (ppu *PPU) writeData(value byte) {
 
 // $4014: OAMDMA
 func (ppu *PPU) writeDMA(value byte) {
-	// TODO: stall CPU for 513 or 514 cycles
 	cpu := ppu.nes.CPU
 	address := uint16(value) << 8
 	for i := 0; i < 256; i++ {
 		ppu.oamData[ppu.oamAddress] = cpu.Read(address)
 		ppu.oamAddress++
 		address++
+	}
+	cpu.stall += 513
+	if cpu.Cycles%2 == 1 {
+		cpu.stall++
 	}
 }
 
@@ -409,8 +415,7 @@ func (ppu *PPU) spritePixel() (byte, byte) {
 
 func (ppu *PPU) renderPixel() {
 	background := ppu.backgroundPixel()
-	index, sprite := ppu.spritePixel()
-	priority := ppu.spritePriorities[index]
+	i, sprite := ppu.spritePixel()
 	b := background%4 != 0
 	s := sprite%4 != 0
 	var color byte
@@ -421,10 +426,10 @@ func (ppu *PPU) renderPixel() {
 	} else if b && !s {
 		color = background
 	} else {
-		if index == 0 {
+		if ppu.spriteIndexes[i] == 0 {
 			ppu.flagSpriteZeroHit = 1
 		}
-		if priority == 0 {
+		if ppu.spritePriorities[i] == 0 {
 			color = sprite | 0x10
 		} else {
 			color = background
@@ -497,13 +502,17 @@ func (ppu *PPU) evaluateSprites() {
 		if row < 0 || row >= h {
 			continue
 		}
-		ppu.spritePatterns[count] = ppu.fetchSpritePattern(i, row)
-		ppu.spritePositions[count] = x
-		ppu.spritePriorities[count] = (a >> 5) & 1
-		count++
-		if count == 8 {
-			break
+		if count < 8 {
+			ppu.spritePatterns[count] = ppu.fetchSpritePattern(i, row)
+			ppu.spritePositions[count] = x
+			ppu.spritePriorities[count] = (a >> 5) & 1
+			ppu.spriteIndexes[count] = byte(i)
 		}
+		count++
+	}
+	if count > 8 {
+		count = 8
+		ppu.flagSpriteOverflow = 1
 	}
 	ppu.spriteCount = count
 }
@@ -579,9 +588,6 @@ func (ppu *PPU) Step() {
 
 	// sprite logic
 	if renderingEnabled {
-		if preLine && ppu.Cycle == 1 {
-			ppu.flagSpriteZeroHit = 0
-		}
 		if visibleLine && ppu.Cycle == 257 {
 			ppu.evaluateSprites()
 		}
@@ -593,5 +599,7 @@ func (ppu *PPU) Step() {
 	}
 	if preLine && ppu.Cycle == 1 {
 		ppu.clearVerticalBlank()
+		ppu.flagSpriteZeroHit = 0
+		ppu.flagSpriteOverflow = 0
 	}
 }

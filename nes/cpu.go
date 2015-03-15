@@ -162,6 +162,7 @@ type CPU struct {
 	V         byte   // overflow flag
 	N         byte   // negative flag
 	interrupt byte   // interrupt type to perform
+	stall     int    // number of cycles to stall
 	table     [256]func(*stepInfo)
 }
 
@@ -363,6 +364,11 @@ type stepInfo struct {
 
 // Step executes a single CPU instruction
 func (cpu *CPU) Step() int {
+	if cpu.stall > 0 {
+		cpu.stall--
+		return 1
+	}
+
 	switch cpu.interrupt {
 	case interruptNMI:
 		cpu.nmi()
