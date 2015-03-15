@@ -2,17 +2,9 @@ package nes
 
 import "log"
 
-const (
-	MirrorHorizontal = 0
-	MirrorVertical   = 1
-	MirrorQuad       = 2
-)
-
-var MirrorLookup [4][4]uint16 = [4][4]uint16{
+var MirrorLookup [2][4]uint16 = [2][4]uint16{
 	{0, 0, 1, 1},
 	{0, 1, 0, 1},
-	{0, 0, 0, 0},
-	{0, 1, 2, 3},
 }
 
 type Cartridge struct {
