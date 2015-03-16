@@ -18,7 +18,7 @@ type Mapper1 struct {
 
 func NewMapper1(cartridge *Cartridge) Mapper {
 	prgOffset1 := len(cartridge.PRG) - 0x4000
-	return &Mapper1{Cartridge: cartridge, shiftRegister: 0x10, prgOffset1: prgOffset1}
+	return &Mapper1{cartridge, 0x10, 0, 0, 0, 0, 0, 0, prgOffset1, 0, 0}
 }
 
 func (m *Mapper1) Read(address uint16) byte {
