@@ -2,8 +2,6 @@
 
 This is an NES emulator written in Go.
 
-![Screenshot](http://i.imgur.com/hReiXW9.png)
-
 ### Usage
 
     go get github.com/fogleman/nes
@@ -36,8 +34,10 @@ The following mappers have been implemented:
 * UNROM (2)
 
 These mappers cover about 50% of all NES games. I hope to implement more
-mappers soon.
-
-To see what games should work, consult this list:
+mappers soon. To see what games should work, consult this list:
 
 [NES Mapper List](http://tuxnes.sourceforge.net/nesmapper.txt)
+
+### Screenshots
+
+![Screenshot](http://i.imgur.com/hReiXW9.png)
