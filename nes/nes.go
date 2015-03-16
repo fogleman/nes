@@ -10,7 +10,7 @@ type NES struct {
 	PPU         *PPU
 	CPUMemory   Memory
 	PPUMemory   Memory
-	Mapper      Memory
+	Mapper      Mapper
 	RAM         []byte
 	Cartridge   *Cartridge
 	Controller1 *Controller

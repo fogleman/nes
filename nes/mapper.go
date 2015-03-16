@@ -2,10 +2,17 @@ package nes
 
 import "log"
 
-func NewMapper(cartridge *Cartridge) Memory {
+type Mapper interface {
+	Read(address uint16) byte
+	Write(address uint16, value byte)
+}
+
+func NewMapper(cartridge *Cartridge) Mapper {
 	switch cartridge.Mapper {
 	case 0:
 		return NewMapper2(cartridge)
+	case 1:
+		return NewMapper1(cartridge)
 	case 2:
 		return NewMapper2(cartridge)
 	default:

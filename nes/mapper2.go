@@ -8,7 +8,7 @@ type Mapper2 struct {
 	prgBank2 int
 }
 
-func NewMapper2(cartridge *Cartridge) Memory {
+func NewMapper2(cartridge *Cartridge) Mapper {
 	prgBanks := len(cartridge.PRG) / 0x4000
 	prgBank1 := 0
 	prgBank2 := prgBanks - 1
