@@ -43,8 +43,8 @@ func setTexture(texture uint32, im *image.RGBA) {
 
 func drawQuad(window *glfw.Window) {
 	w, h := window.GetFramebufferSize()
-	s1 := 2 * float32(w) / float32(width)
-	s2 := 2 * float32(h) / float32(height)
+	s1 := float32(w) / float32(width)
+	s2 := float32(h) / float32(height)
 	f := float32(1 - padding)
 	var x, y float32
 	if s1 >= s2 {
