@@ -2,6 +2,7 @@ package nes
 
 import (
 	"image"
+	"image/color"
 	"log"
 )
 
@@ -54,6 +55,10 @@ func (nes *NES) StepFrame() {
 
 func (nes *NES) Buffer() *image.RGBA {
 	return nes.PPU.buffer
+}
+
+func (nes *NES) BackgroundColor() color.RGBA {
+	return palette[nes.PPU.readPalette(0)%64]
 }
 
 func (nes *NES) SetPressed(controller, button int, pressed bool) {
