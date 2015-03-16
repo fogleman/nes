@@ -4,27 +4,21 @@ import "log"
 
 type Mapper2 struct {
 	*Cartridge
-	prgBanks int
-	chrBanks int
 	prgBank1 int
 	prgBank2 int
-	chrBank  int
 }
 
 func NewMapper2(cartridge *Cartridge) Memory {
 	prgBanks := len(cartridge.PRG) / 0x4000
-	chrBanks := len(cartridge.CHR) / 0x2000
 	prgBank1 := 0
 	prgBank2 := prgBanks - 1
-	chrBank := 0
-	return &Mapper2{cartridge, prgBanks, chrBanks, prgBank1, prgBank2, chrBank}
+	return &Mapper2{cartridge, prgBank1, prgBank2}
 }
 
 func (m *Mapper2) Read(address uint16) byte {
 	switch {
 	case address < 0x2000:
-		index := m.chrBank*0x2000 + int(address)
-		return m.CHR[index]
+		return m.CHR[address]
 	case address >= 0xC000:
 		index := m.prgBank2*0x4000 + int(address-0xC000)
 		return m.PRG[index]
@@ -43,8 +37,7 @@ func (m *Mapper2) Read(address uint16) byte {
 func (m *Mapper2) Write(address uint16, value byte) {
 	switch {
 	case address < 0x2000:
-		index := m.chrBank*0x2000 + int(address)
-		m.CHR[index] = value
+		m.CHR[address] = value
 	case address >= 0x8000:
 		m.prgBank1 = int(value)
 	case address >= 0x6000:
