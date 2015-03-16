@@ -6,7 +6,16 @@ This is an NES emulator written in Go.
 
 ### Usage
 
-    go run main.go filename.nes
+    go get github.com/fogleman/nes
+    nes <rom_file.nes>
+
+The `go get` command will automatically fetch the dependencies listed below,
+compile the binary and place it in your `$GOPATH/bin` directory.
+
+### Dependencies
+
+    github.com/go-gl/gl/v2.1/gl
+    github.com/go-gl/glfw/v3.1/glfw
 
 ### Controls
 
