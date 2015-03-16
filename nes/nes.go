@@ -10,6 +10,7 @@ type NES struct {
 	PPU         *PPU
 	CPUMemory   Memory
 	PPUMemory   Memory
+	Mapper      Memory
 	RAM         []byte
 	Cartridge   *Cartridge
 	Controller1 *Controller
@@ -24,7 +25,10 @@ func NewNES(path string) (*NES, error) {
 	ram := make([]byte, 2048)
 	controller1 := NewController()
 	controller2 := NewController()
-	nes := NES{nil, nil, nil, nil, ram, cartridge, controller1, controller2}
+	mapper := NewMapper(cartridge)
+	nes := NES{
+		nil, nil, nil, nil,
+		mapper, ram, cartridge, controller1, controller2}
 	nes.CPUMemory = NewCPUMemory(&nes)
 	nes.PPUMemory = NewPPUMemory(&nes)
 	nes.CPU = NewCPU(&nes)

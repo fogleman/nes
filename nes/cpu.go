@@ -263,6 +263,13 @@ func (cpu *CPU) compare(a, b byte) {
 	}
 }
 
+// Read16 reads two bytes using Read to return a double-word value
+func (cpu *CPU) Read16(address uint16) uint16 {
+	lo := uint16(cpu.Read(address))
+	hi := uint16(cpu.Read(address + 1))
+	return hi<<8 | lo
+}
+
 // read16bug emulates a 6502 bug that caused the low byte to wrap without
 // incrementing the high byte
 func (cpu *CPU) read16bug(address uint16) uint16 {
