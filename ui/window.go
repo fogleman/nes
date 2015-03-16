@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	width  = 256
-	height = 240
-	scale  = 3
-	title  = "NES"
+	width   = 256
+	height  = 240
+	scale   = 3
+	padding = 0
+	title   = "NES"
 )
 
 func init() {
@@ -42,15 +43,16 @@ func setTexture(texture uint32, im *image.RGBA) {
 
 func drawQuad(window *glfw.Window) {
 	w, h := window.GetFramebufferSize()
-	aspect := float32(w) / float32(h)
-	var x, y, size float32
-	size = 0.95
-	if aspect >= 1 {
-		x = size / aspect
-		y = size
+	s1 := 2 * float32(w) / float32(width)
+	s2 := 2 * float32(h) / float32(height)
+	f := float32(1 - padding)
+	var x, y float32
+	if s1 >= s2 {
+		x = f * s2 / s1
+		y = f
 	} else {
-		x = size
-		y = size * aspect
+		x = f
+		y = f * s1 / s2
 	}
 	gl.Begin(gl.QUADS)
 	gl.TexCoord2f(0, 1)
