@@ -167,7 +167,7 @@ type CPU struct {
 }
 
 func NewCPU(nes *NES) *CPU {
-	cpu := CPU{Memory: nes.CPUMemory}
+	cpu := CPU{Memory: NewCPUMemory(nes)}
 	cpu.createTable()
 	cpu.Reset()
 	return &cpu

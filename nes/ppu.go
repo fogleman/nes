@@ -75,7 +75,7 @@ type PPU struct {
 }
 
 func NewPPU(nes *NES) *PPU {
-	ppu := PPU{Memory: nes.PPUMemory, nes: nes}
+	ppu := PPU{Memory: NewPPUMemory(nes), nes: nes}
 	ppu.buffer = image.NewRGBA(image.Rect(0, 0, 256, 240))
 	ppu.Reset()
 	return &ppu
