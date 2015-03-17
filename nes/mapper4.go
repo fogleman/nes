@@ -11,10 +11,9 @@ type Mapper4 struct {
 	chrMode    byte
 	prgOffsets [4]int
 	chrOffsets [8]int
-	latch      byte
+	reload     byte
 	counter    byte
-	reload     bool
-	irq        bool
+	irqEnable  bool
 }
 
 func NewMapper4(nes *NES, cartridge *Cartridge) Mapper {
@@ -41,12 +40,11 @@ func (m *Mapper4) Step() {
 }
 
 func (m *Mapper4) HandleScanLine() {
-	if m.reload || m.counter == 0 {
-		m.counter = m.latch
-		m.reload = false
+	if m.counter == 0 {
+		m.counter = m.reload
 	} else {
 		m.counter--
-		if m.counter == 0 && m.irq {
+		if m.counter == 0 && m.irqEnable {
 			m.nes.CPU.triggerIRQ()
 		}
 	}
@@ -132,20 +130,19 @@ func (m *Mapper4) writeProtect(value byte) {
 }
 
 func (m *Mapper4) writeIRQLatch(value byte) {
-	m.latch = value
+	m.reload = value
 }
 
 func (m *Mapper4) writeIRQReload(value byte) {
-	m.reload = true
-	m.counter |= 0x80
+	m.counter = 0
 }
 
 func (m *Mapper4) writeIRQDisable(value byte) {
-	m.irq = false
+	m.irqEnable = false
 }
 
 func (m *Mapper4) writeIRQEnable(value byte) {
-	m.irq = true
+	m.irqEnable = true
 }
 
 func (m *Mapper4) prgBankOffset(index int) int {
