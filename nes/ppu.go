@@ -393,11 +393,17 @@ func (ppu *PPU) fetchTileData() uint32 {
 }
 
 func (ppu *PPU) backgroundPixel() byte {
+	if ppu.flagShowBackground == 0 {
+		return 0
+	}
 	data := ppu.fetchTileData() >> ((7 - ppu.x) * 4)
 	return byte(data & 0x0F)
 }
 
 func (ppu *PPU) spritePixel() (byte, byte) {
+	if ppu.flagShowSprites == 0 {
+		return 0, 0
+	}
 	for i := 0; i < ppu.spriteCount; i++ {
 		offset := ppu.Cycle - int(ppu.spritePositions[i])
 		if offset < 0 || offset > 7 {
@@ -414,8 +420,16 @@ func (ppu *PPU) spritePixel() (byte, byte) {
 }
 
 func (ppu *PPU) renderPixel() {
+	x := ppu.Cycle - 1
+	y := ppu.ScanLine
 	background := ppu.backgroundPixel()
 	i, sprite := ppu.spritePixel()
+	// if x < 8 && ppu.flagShowLeftBackground == 0 {
+	// 	background = 0
+	// }
+	// if x < 8 && ppu.flagShowLeftSprites == 0 {
+	// 	sprite = 0
+	// }
 	b := background%4 != 0
 	s := sprite%4 != 0
 	var color byte
@@ -435,8 +449,6 @@ func (ppu *PPU) renderPixel() {
 			color = background
 		}
 	}
-	y := ppu.ScanLine
-	x := ppu.Cycle - 1
 	c := palette[ppu.readPalette(uint16(color))%64]
 	ppu.buffer.SetRGBA(x, y, c)
 }
