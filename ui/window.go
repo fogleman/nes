@@ -18,6 +18,7 @@ const (
 )
 
 func init() {
+	runtime.GOMAXPROCS(2)
 	runtime.LockOSThread()
 }
 
@@ -82,6 +83,15 @@ func readKeys(window *glfw.Window, console *nes.Console) {
 }
 
 func Run(console *nes.Console) {
+	// portaudio.Initialize()
+	// defer portaudio.Terminate()
+
+	// audio := NewAudio()
+	// if err := audio.Start(); err != nil {
+	// 	panic(err)
+	// }
+	// defer audio.Stop()
+
 	err := glfw.Init()
 	if err != nil {
 		panic(err)
