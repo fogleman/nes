@@ -125,6 +125,8 @@ func (ppu *PPU) writeRegister(address uint16, value byte) {
 		ppu.writeControl(value)
 	case 0x2001:
 		ppu.writeMask(value)
+	case 0x2002:
+		// no-op
 	case 0x2003:
 		ppu.writeOAMAddress(value)
 	case 0x2004:
@@ -531,12 +533,14 @@ func (ppu *PPU) evaluateSprites() {
 
 // tick updates Cycle, ScanLine and Frame counters
 func (ppu *PPU) tick() {
-	if ppu.f == 1 && ppu.ScanLine == 261 && ppu.Cycle == 339 {
-		ppu.Cycle = 0
-		ppu.ScanLine = 0
-		ppu.Frame++
-		ppu.f ^= 1
-		return
+	if ppu.flagShowBackground != 0 || ppu.flagShowSprites != 0 {
+		if ppu.f == 1 && ppu.ScanLine == 261 && ppu.Cycle == 339 {
+			ppu.Cycle = 0
+			ppu.ScanLine = 0
+			ppu.Frame++
+			ppu.f ^= 1
+			return
+		}
 	}
 	ppu.Cycle++
 	if ppu.Cycle > 340 {

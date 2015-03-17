@@ -384,6 +384,8 @@ func (cpu *CPU) Step() int {
 		return 1
 	}
 
+	cycles := cpu.Cycles
+
 	switch cpu.interrupt {
 	case interruptNMI:
 		cpu.nmi()
@@ -433,8 +435,6 @@ func (cpu *CPU) Step() int {
 	case modeZeroPageY:
 		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
 	}
-
-	cycles := cpu.Cycles
 
 	info := &stepInfo{address, cpu.PC, mode}
 	cpu.PC += uint16(instructionSizes[opcode])
