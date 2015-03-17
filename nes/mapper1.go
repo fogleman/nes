@@ -11,15 +11,16 @@ type Mapper1 struct {
 	prgBank       byte
 	chrBank0      byte
 	chrBank1      byte
-	prgOffset0    int
-	prgOffset1    int
-	chrOffset0    int
-	chrOffset1    int
+	prgOffsets    [2]int
+	chrOffsets    [2]int
 }
 
 func NewMapper1(cartridge *Cartridge) Mapper {
-	prgOffset1 := len(cartridge.PRG) - 0x4000
-	return &Mapper1{cartridge, 0x10, 0, 0, 0, 0, 0, 0, 0, prgOffset1, 0, 0}
+	m := Mapper1{}
+	m.Cartridge = cartridge
+	m.shiftRegister = 0x10
+	m.prgOffsets[1] = m.prgBankOffset(-1)
+	return &m
 }
 
 func (m *Mapper1) Step() {
@@ -27,14 +28,15 @@ func (m *Mapper1) Step() {
 
 func (m *Mapper1) Read(address uint16) byte {
 	switch {
-	case address < 0x1000:
-		return m.CHR[m.chrOffset0+int(address)-0x0000]
 	case address < 0x2000:
-		return m.CHR[m.chrOffset1+int(address)-0x1000]
-	case address >= 0xC000:
-		return m.PRG[m.prgOffset1+int(address)-0xC000]
+		bank := address / 0x1000
+		offset := address % 0x1000
+		return m.CHR[m.chrOffsets[bank]+int(offset)]
 	case address >= 0x8000:
-		return m.PRG[m.prgOffset0+int(address)-0x8000]
+		address = address - 0x8000
+		bank := address / 0x4000
+		offset := address % 0x4000
+		return m.PRG[m.prgOffsets[bank]+int(offset)]
 	case address >= 0x6000:
 		return m.SRAM[int(address)-0x6000]
 	default:
@@ -45,10 +47,10 @@ func (m *Mapper1) Read(address uint16) byte {
 
 func (m *Mapper1) Write(address uint16, value byte) {
 	switch {
-	case address < 0x1000:
-		m.CHR[m.chrOffset0+int(address)-0x0000] = value
 	case address < 0x2000:
-		m.CHR[m.chrOffset1+int(address)-0x1000] = value
+		bank := address / 0x1000
+		offset := address % 0x1000
+		m.CHR[m.chrOffsets[bank]+int(offset)] = value
 	case address >= 0x8000:
 		m.loadRegister(address, value)
 	case address >= 0x6000:
@@ -123,6 +125,22 @@ func (m *Mapper1) writePRGBank(value byte) {
 	m.updateOffsets()
 }
 
+func (m *Mapper1) prgBankOffset(index int) int {
+	offset := index * 0x4000
+	if offset < 0 {
+		offset += len(m.PRG)
+	}
+	return offset
+}
+
+func (m *Mapper1) chrBankOffset(index int) int {
+	offset := index * 0x1000
+	if offset < 0 {
+		offset += len(m.CHR)
+	}
+	return offset
+}
+
 // PRG ROM bank mode (0, 1: switch 32 KB at $8000, ignoring low bit of bank number;
 //                    2: fix first bank at $8000 and switch 16 KB bank at $C000;
 //                    3: fix last bank at $C000 and switch 16 KB bank at $8000)
@@ -130,21 +148,21 @@ func (m *Mapper1) writePRGBank(value byte) {
 func (m *Mapper1) updateOffsets() {
 	switch m.prgMode {
 	case 0, 1:
-		m.prgOffset0 = int(m.prgBank&0xFE) * 0x4000
-		m.prgOffset1 = m.prgOffset0 + 0x4000
+		m.prgOffsets[0] = m.prgBankOffset(int(m.prgBank & 0xFE))
+		m.prgOffsets[1] = m.prgBankOffset(int(m.prgBank | 0x01))
 	case 2:
-		m.prgOffset0 = 0
-		m.prgOffset1 = int(m.prgBank) * 0x4000
+		m.prgOffsets[0] = 0
+		m.prgOffsets[1] = m.prgBankOffset(int(m.prgBank))
 	case 3:
-		m.prgOffset0 = int(m.prgBank) * 0x4000
-		m.prgOffset1 = len(m.Cartridge.PRG) - 0x4000
+		m.prgOffsets[0] = m.prgBankOffset(int(m.prgBank))
+		m.prgOffsets[1] = m.prgBankOffset(-1)
 	}
 	switch m.chrMode {
 	case 0:
-		m.chrOffset0 = int(m.chrBank0&0xFE) * 0x1000
-		m.chrOffset1 = m.chrOffset0 + 0x1000
+		m.chrOffsets[0] = m.chrBankOffset(int(m.chrBank0 & 0xFE))
+		m.chrOffsets[1] = m.chrBankOffset(int(m.chrBank0 | 0x01))
 	case 1:
-		m.chrOffset0 = int(m.chrBank0) * 0x1000
-		m.chrOffset1 = int(m.chrBank1) * 0x1000
+		m.chrOffsets[0] = m.chrBankOffset(int(m.chrBank0))
+		m.chrOffsets[1] = m.chrBankOffset(int(m.chrBank1))
 	}
 }
