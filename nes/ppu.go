@@ -588,8 +588,12 @@ func (ppu *PPU) Step() {
 
 	// sprite logic
 	if renderingEnabled {
-		if visibleLine && ppu.Cycle == 257 {
-			ppu.evaluateSprites()
+		if ppu.Cycle == 257 {
+			if visibleLine {
+				ppu.evaluateSprites()
+			} else {
+				ppu.spriteCount = 0
+			}
 		}
 	}
 

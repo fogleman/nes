@@ -5,6 +5,7 @@ import "log"
 type Mapper1 struct {
 	*Cartridge
 	shiftRegister byte
+	control       byte
 	prgMode       byte
 	chrMode       byte
 	prgBank       byte
@@ -18,7 +19,7 @@ type Mapper1 struct {
 
 func NewMapper1(cartridge *Cartridge) Mapper {
 	prgOffset1 := len(cartridge.PRG) - 0x4000
-	return &Mapper1{cartridge, 0x10, 0, 0, 0, 0, 0, 0, prgOffset1, 0, 0}
+	return &Mapper1{cartridge, 0x10, 0, 0, 0, 0, 0, 0, 0, prgOffset1, 0, 0}
 }
 
 func (m *Mapper1) Step() {
@@ -60,6 +61,7 @@ func (m *Mapper1) Write(address uint16, value byte) {
 func (m *Mapper1) loadRegister(address uint16, value byte) {
 	if value&0x80 == 0x80 {
 		m.shiftRegister = 0x10
+		m.writeControl(m.control | 0x0C)
 	} else {
 		complete := m.shiftRegister&1 == 1
 		m.shiftRegister >>= 1
@@ -86,6 +88,7 @@ func (m *Mapper1) writeRegister(address uint16, value byte) {
 
 // Control (internal, $8000-$9FFF)
 func (m *Mapper1) writeControl(value byte) {
+	m.control = value
 	m.chrMode = (value >> 4) & 1
 	m.prgMode = (value >> 2) & 3
 	mirror := value & 3
@@ -127,7 +130,7 @@ func (m *Mapper1) writePRGBank(value byte) {
 func (m *Mapper1) updateOffsets() {
 	switch m.prgMode {
 	case 0, 1:
-		m.prgOffset0 = int(m.prgBank&0xFE) * 0x8000
+		m.prgOffset0 = int(m.prgBank&0xFE) * 0x4000
 		m.prgOffset1 = m.prgOffset0 + 0x4000
 	case 2:
 		m.prgOffset0 = 0
@@ -138,7 +141,7 @@ func (m *Mapper1) updateOffsets() {
 	}
 	switch m.chrMode {
 	case 0:
-		m.chrOffset0 = int(m.chrBank0&0xFE) * 0x2000
+		m.chrOffset0 = int(m.chrBank0&0xFE) * 0x1000
 		m.chrOffset1 = m.chrOffset0 + 0x1000
 	case 1:
 		m.chrOffset0 = int(m.chrBank0) * 0x1000
