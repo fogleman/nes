@@ -15,6 +15,9 @@ func NewMapper2(cartridge *Cartridge) Mapper {
 	return &Mapper2{cartridge, prgBank1, prgBank2}
 }
 
+func (m *Mapper2) Step() {
+}
+
 func (m *Mapper2) Read(address uint16) byte {
 	switch {
 	case address < 0x2000:

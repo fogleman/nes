@@ -5,9 +5,10 @@ import "log"
 type Mapper interface {
 	Read(address uint16) byte
 	Write(address uint16, value byte)
+	Step()
 }
 
-func NewMapper(cartridge *Cartridge) Mapper {
+func NewMapper(nes *NES, cartridge *Cartridge) Mapper {
 	switch cartridge.Mapper {
 	case 0:
 		return NewMapper2(cartridge)
@@ -16,7 +17,7 @@ func NewMapper(cartridge *Cartridge) Mapper {
 	case 2:
 		return NewMapper2(cartridge)
 	case 4:
-		return NewMapper4(cartridge)
+		return NewMapper4(nes, cartridge)
 	default:
 		log.Fatalf("unsupported mapper: %d", cartridge.Mapper)
 	}

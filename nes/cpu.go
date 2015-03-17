@@ -7,6 +7,7 @@ const (
 	_ = iota
 	interruptNone
 	interruptNMI
+	interruptIRQ
 )
 
 // addressing modes
@@ -362,6 +363,13 @@ func (cpu *CPU) triggerNMI() {
 	cpu.interrupt = interruptNMI
 }
 
+// triggerIRQ causes an IRQ interrupt to occur on the next cycle
+func (cpu *CPU) triggerIRQ() {
+	if cpu.I == 0 {
+		cpu.interrupt = interruptIRQ
+	}
+}
+
 // stepInfo contains information that the instruction functions use
 type stepInfo struct {
 	address uint16
@@ -379,6 +387,8 @@ func (cpu *CPU) Step() int {
 	switch cpu.interrupt {
 	case interruptNMI:
 		cpu.nmi()
+	case interruptIRQ:
+		cpu.irq()
 	}
 	cpu.interrupt = interruptNone
 
@@ -442,6 +452,17 @@ func (cpu *CPU) nmi() {
 	cpu.push16(cpu.PC)
 	cpu.php(nil)
 	cpu.PC = cpu.Read16(0xFFFA)
+	cpu.I = 1
+	cpu.Cycles += 7
+}
+
+// IRQ - IRQ Interrupt
+func (cpu *CPU) irq() {
+	cpu.push16(cpu.PC)
+	cpu.php(nil)
+	cpu.PC = cpu.Read16(0xFFFE)
+	cpu.I = 1
+	cpu.Cycles += 7
 }
 
 // ADC - Add with Carry

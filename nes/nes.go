@@ -24,8 +24,8 @@ func NewNES(path string) (*NES, error) {
 	ram := make([]byte, 2048)
 	controller1 := NewController()
 	controller2 := NewController()
-	mapper := NewMapper(cartridge)
-	nes := NES{nil, nil, cartridge, controller1, controller2, mapper, ram}
+	nes := NES{nil, nil, cartridge, controller1, controller2, nil, ram}
+	nes.Mapper = NewMapper(&nes, cartridge)
 	nes.CPU = NewCPU(&nes)
 	nes.PPU = NewPPU(&nes)
 	return &nes, nil
@@ -36,6 +36,7 @@ func (nes *NES) Step() int {
 	ppuCycles := cpuCycles * 3
 	for i := 0; i < ppuCycles; i++ {
 		nes.PPU.Step()
+		nes.Mapper.Step()
 	}
 	return cpuCycles
 }

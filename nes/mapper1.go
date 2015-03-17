@@ -21,6 +21,9 @@ func NewMapper1(cartridge *Cartridge) Mapper {
 	return &Mapper1{cartridge, 0x10, 0, 0, 0, 0, 0, 0, prgOffset1, 0, 0}
 }
 
+func (m *Mapper1) Step() {
+}
+
 func (m *Mapper1) Read(address uint16) byte {
 	switch {
 	case address < 0x1000:
