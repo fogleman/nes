@@ -8,6 +8,7 @@ import (
 
 type NES struct {
 	CPU         *CPU
+	APU         *APU
 	PPU         *PPU
 	Cartridge   *Cartridge
 	Controller1 *Controller
@@ -24,9 +25,10 @@ func NewNES(path string) (*NES, error) {
 	ram := make([]byte, 2048)
 	controller1 := NewController()
 	controller2 := NewController()
-	nes := NES{nil, nil, cartridge, controller1, controller2, nil, ram}
+	nes := NES{nil, nil, nil, cartridge, controller1, controller2, nil, ram}
 	nes.Mapper = NewMapper(&nes, cartridge)
 	nes.CPU = NewCPU(&nes)
+	nes.APU = NewAPU()
 	nes.PPU = NewPPU(&nes)
 	return &nes, nil
 }
