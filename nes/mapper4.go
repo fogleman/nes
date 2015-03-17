@@ -4,7 +4,7 @@ import "log"
 
 type Mapper4 struct {
 	*Cartridge
-	nes        *NES
+	console    *Console
 	register   byte
 	registers  [8]byte
 	prgMode    byte
@@ -16,8 +16,8 @@ type Mapper4 struct {
 	irqEnable  bool
 }
 
-func NewMapper4(nes *NES, cartridge *Cartridge) Mapper {
-	m := Mapper4{Cartridge: cartridge, nes: nes}
+func NewMapper4(console *Console, cartridge *Cartridge) Mapper {
+	m := Mapper4{Cartridge: cartridge, console: console}
 	m.prgOffsets[0] = m.prgBankOffset(0)
 	m.prgOffsets[1] = m.prgBankOffset(1)
 	m.prgOffsets[2] = m.prgBankOffset(-2)
@@ -26,7 +26,7 @@ func NewMapper4(nes *NES, cartridge *Cartridge) Mapper {
 }
 
 func (m *Mapper4) Step() {
-	ppu := m.nes.PPU
+	ppu := m.console.PPU
 	if ppu.Cycle != 260 {
 		return
 	}
@@ -45,7 +45,7 @@ func (m *Mapper4) HandleScanLine() {
 	} else {
 		m.counter--
 		if m.counter == 0 && m.irqEnable {
-			m.nes.CPU.triggerIRQ()
+			m.console.CPU.triggerIRQ()
 		}
 	}
 }

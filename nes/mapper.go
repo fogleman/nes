@@ -8,7 +8,8 @@ type Mapper interface {
 	Step()
 }
 
-func NewMapper(nes *NES, cartridge *Cartridge) Mapper {
+func NewMapper(console *Console) Mapper {
+	cartridge := console.Cartridge
 	switch cartridge.Mapper {
 	case 0:
 		return NewMapper2(cartridge)
@@ -17,7 +18,7 @@ func NewMapper(nes *NES, cartridge *Cartridge) Mapper {
 	case 2:
 		return NewMapper2(cartridge)
 	case 4:
-		return NewMapper4(nes, cartridge)
+		return NewMapper4(console, cartridge)
 	default:
 		log.Fatalf("unsupported mapper: %d", cartridge.Mapper)
 	}

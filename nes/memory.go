@@ -10,31 +10,31 @@ type Memory interface {
 // CPU Memory Map
 
 type cpuMemory struct {
-	nes *NES
+	console *Console
 }
 
-func NewCPUMemory(nes *NES) Memory {
-	return &cpuMemory{nes}
+func NewCPUMemory(console *Console) Memory {
+	return &cpuMemory{console}
 }
 
 func (mem *cpuMemory) Read(address uint16) byte {
 	switch {
 	case address < 0x2000:
-		return mem.nes.RAM[address%0x0800]
+		return mem.console.RAM[address%0x0800]
 	case address < 0x4000:
-		return mem.nes.PPU.readRegister(0x2000 + address%8)
+		return mem.console.PPU.readRegister(0x2000 + address%8)
 	case address == 0x4014:
-		return mem.nes.PPU.readRegister(address)
+		return mem.console.PPU.readRegister(address)
 	case address == 0x4015:
-		return mem.nes.APU.readRegister(address)
+		return mem.console.APU.readRegister(address)
 	case address == 0x4016:
-		return mem.nes.Controller1.Read()
+		return mem.console.Controller1.Read()
 	case address == 0x4017:
-		return mem.nes.Controller2.Read()
+		return mem.console.Controller2.Read()
 	case address < 0x6000:
 		// TODO: I/O registers
 	case address >= 0x6000:
-		return mem.nes.Mapper.Read(address)
+		return mem.console.Mapper.Read(address)
 	default:
 		log.Fatalf("unhandled cpu memory read at address: 0x%04X", address)
 	}
@@ -44,23 +44,23 @@ func (mem *cpuMemory) Read(address uint16) byte {
 func (mem *cpuMemory) Write(address uint16, value byte) {
 	switch {
 	case address < 0x2000:
-		mem.nes.RAM[address%0x0800] = value
+		mem.console.RAM[address%0x0800] = value
 	case address < 0x4000:
-		mem.nes.PPU.writeRegister(0x2000+address%8, value)
+		mem.console.PPU.writeRegister(0x2000+address%8, value)
 	case address < 0x4014:
-		mem.nes.APU.writeRegister(address, value)
+		mem.console.APU.writeRegister(address, value)
 	case address == 0x4014:
-		mem.nes.PPU.writeRegister(address, value)
+		mem.console.PPU.writeRegister(address, value)
 	case address == 0x4015:
-		mem.nes.APU.writeRegister(address, value)
+		mem.console.APU.writeRegister(address, value)
 	case address == 0x4016:
-		mem.nes.Controller1.Write(value)
+		mem.console.Controller1.Write(value)
 	case address == 0x4017:
-		mem.nes.Controller2.Write(value)
+		mem.console.Controller2.Write(value)
 	case address < 0x6000:
 		// TODO: I/O registers
 	case address >= 0x6000:
-		mem.nes.Mapper.Write(address, value)
+		mem.console.Mapper.Write(address, value)
 	default:
 		log.Fatalf("unhandled cpu memory write at address: 0x%04X", address)
 	}
@@ -69,23 +69,23 @@ func (mem *cpuMemory) Write(address uint16, value byte) {
 // PPU Memory Map
 
 type ppuMemory struct {
-	nes *NES
+	console *Console
 }
 
-func NewPPUMemory(nes *NES) Memory {
-	return &ppuMemory{nes}
+func NewPPUMemory(console *Console) Memory {
+	return &ppuMemory{console}
 }
 
 func (mem *ppuMemory) Read(address uint16) byte {
 	address = address % 0x4000
 	switch {
 	case address < 0x2000:
-		return mem.nes.Mapper.Read(address)
+		return mem.console.Mapper.Read(address)
 	case address < 0x3F00:
-		mode := mem.nes.Cartridge.Mirror
-		return mem.nes.PPU.nameTableData[MirrorAddress(mode, address)%2048]
+		mode := mem.console.Cartridge.Mirror
+		return mem.console.PPU.nameTableData[MirrorAddress(mode, address)%2048]
 	case address < 0x4000:
-		return mem.nes.PPU.readPalette(address % 32)
+		return mem.console.PPU.readPalette(address % 32)
 	default:
 		log.Fatalf("unhandled ppu memory read at address: 0x%04X", address)
 	}
@@ -96,12 +96,12 @@ func (mem *ppuMemory) Write(address uint16, value byte) {
 	address = address % 0x4000
 	switch {
 	case address < 0x2000:
-		mem.nes.Mapper.Write(address, value)
+		mem.console.Mapper.Write(address, value)
 	case address < 0x3F00:
-		mode := mem.nes.Cartridge.Mirror
-		mem.nes.PPU.nameTableData[MirrorAddress(mode, address)%2048] = value
+		mode := mem.console.Cartridge.Mirror
+		mem.console.PPU.nameTableData[MirrorAddress(mode, address)%2048] = value
 	case address < 0x4000:
-		mem.nes.PPU.writePalette(address%32, value)
+		mem.console.PPU.writePalette(address%32, value)
 	default:
 		log.Fatalf("unhandled ppu memory write at address: 0x%04X", address)
 	}

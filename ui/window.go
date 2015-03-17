@@ -70,18 +70,18 @@ func readKey(window *glfw.Window, key glfw.Key) bool {
 	return window.GetKey(key) == glfw.Press
 }
 
-func readKeys(window *glfw.Window, machine *nes.NES) {
-	machine.SetPressed(1, nes.ButtonA, readKey(window, glfw.KeyZ))
-	machine.SetPressed(1, nes.ButtonB, readKey(window, glfw.KeyX))
-	machine.SetPressed(1, nes.ButtonSelect, readKey(window, glfw.KeyRightShift))
-	machine.SetPressed(1, nes.ButtonStart, readKey(window, glfw.KeyEnter))
-	machine.SetPressed(1, nes.ButtonUp, readKey(window, glfw.KeyUp))
-	machine.SetPressed(1, nes.ButtonDown, readKey(window, glfw.KeyDown))
-	machine.SetPressed(1, nes.ButtonLeft, readKey(window, glfw.KeyLeft))
-	machine.SetPressed(1, nes.ButtonRight, readKey(window, glfw.KeyRight))
+func readKeys(window *glfw.Window, console *nes.Console) {
+	console.SetPressed(1, nes.ButtonA, readKey(window, glfw.KeyZ))
+	console.SetPressed(1, nes.ButtonB, readKey(window, glfw.KeyX))
+	console.SetPressed(1, nes.ButtonSelect, readKey(window, glfw.KeyRightShift))
+	console.SetPressed(1, nes.ButtonStart, readKey(window, glfw.KeyEnter))
+	console.SetPressed(1, nes.ButtonUp, readKey(window, glfw.KeyUp))
+	console.SetPressed(1, nes.ButtonDown, readKey(window, glfw.KeyDown))
+	console.SetPressed(1, nes.ButtonLeft, readKey(window, glfw.KeyLeft))
+	console.SetPressed(1, nes.ButtonRight, readKey(window, glfw.KeyRight))
 }
 
-func Run(machine *nes.NES) {
+func Run(console *nes.Console) {
 	err := glfw.Init()
 	if err != nil {
 		panic(err)
@@ -105,9 +105,9 @@ func Run(machine *nes.NES) {
 
 	for !window.ShouldClose() {
 		// step emulator
-		readKeys(window, machine)
-		machine.StepFrame()
-		setTexture(texture, machine.Buffer())
+		readKeys(window, console)
+		console.StepFrame()
+		setTexture(texture, console.Buffer())
 		// render frame
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		drawQuad(window)

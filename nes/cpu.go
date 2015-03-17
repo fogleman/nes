@@ -167,8 +167,8 @@ type CPU struct {
 	table     [256]func(*stepInfo)
 }
 
-func NewCPU(nes *NES) *CPU {
-	cpu := CPU{Memory: NewCPUMemory(nes)}
+func NewCPU(console *Console) *CPU {
+	cpu := CPU{Memory: NewCPUMemory(console)}
 	cpu.createTable()
 	cpu.Reset()
 	return &cpu

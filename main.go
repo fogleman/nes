@@ -13,9 +13,9 @@ func main() {
 	if len(args) != 1 {
 		log.Fatalln("Usage: go run main.go rom_file.nes")
 	}
-	nes, err := nes.NewNES(args[0])
+	console, err := nes.NewConsole(args[0])
 	if err != nil {
 		log.Fatalln(err)
 	}
-	ui.Run(nes)
+	ui.Run(console)
 }

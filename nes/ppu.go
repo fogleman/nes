@@ -6,8 +6,8 @@ import (
 )
 
 type PPU struct {
-	Memory      // memory interface
-	nes    *NES // reference to parent object
+	Memory           // memory interface
+	console *Console // reference to parent object
 
 	Cycle         int    // 0-340
 	ScanLine      int    // 0-261, 0-239=visible, 240=post, 241-260=vblank, 261=pre
@@ -74,8 +74,8 @@ type PPU struct {
 	bufferedData byte // for buffered reads
 }
 
-func NewPPU(nes *NES) *PPU {
-	ppu := PPU{Memory: NewPPUMemory(nes), nes: nes}
+func NewPPU(console *Console) *PPU {
+	ppu := PPU{Memory: NewPPUMemory(console), console: console}
 	ppu.buffer = image.NewRGBA(image.Rect(0, 0, 256, 240))
 	ppu.Reset()
 	return &ppu
@@ -267,7 +267,7 @@ func (ppu *PPU) writeData(value byte) {
 
 // $4014: OAMDMA
 func (ppu *PPU) writeDMA(value byte) {
-	cpu := ppu.nes.CPU
+	cpu := ppu.console.CPU
 	address := uint16(value) << 8
 	for i := 0; i < 256; i++ {
 		ppu.oamData[ppu.oamAddress] = cpu.Read(address)
@@ -339,7 +339,7 @@ func (ppu *PPU) copyY() {
 func (ppu *PPU) setVerticalBlank() {
 	ppu.VerticalBlank = 1
 	if ppu.flagGenerateNMI != 0 {
-		ppu.nes.CPU.triggerNMI()
+		ppu.console.CPU.triggerNMI()
 	}
 }
 
