@@ -17,11 +17,6 @@ const (
 	title   = "NES"
 )
 
-func init() {
-	runtime.GOMAXPROCS(2)
-	runtime.LockOSThread()
-}
-
 func createTexture() uint32 {
 	var texture uint32
 	gl.GenTextures(1, &texture)
@@ -71,18 +66,57 @@ func readKey(window *glfw.Window, key glfw.Key) bool {
 	return window.GetKey(key) == glfw.Press
 }
 
-func readKeys(window *glfw.Window, console *nes.Console) {
-	console.SetPressed(1, nes.ButtonA, readKey(window, glfw.KeyZ))
-	console.SetPressed(1, nes.ButtonB, readKey(window, glfw.KeyX))
-	console.SetPressed(1, nes.ButtonSelect, readKey(window, glfw.KeyRightShift))
-	console.SetPressed(1, nes.ButtonStart, readKey(window, glfw.KeyEnter))
-	console.SetPressed(1, nes.ButtonUp, readKey(window, glfw.KeyUp))
-	console.SetPressed(1, nes.ButtonDown, readKey(window, glfw.KeyDown))
-	console.SetPressed(1, nes.ButtonLeft, readKey(window, glfw.KeyLeft))
-	console.SetPressed(1, nes.ButtonRight, readKey(window, glfw.KeyRight))
+func readKeys(window *glfw.Window) [8]bool {
+	var result [8]bool
+	result[nes.ButtonA] = readKey(window, glfw.KeyZ)
+	result[nes.ButtonB] = readKey(window, glfw.KeyX)
+	result[nes.ButtonSelect] = readKey(window, glfw.KeyRightShift)
+	result[nes.ButtonStart] = readKey(window, glfw.KeyEnter)
+	result[nes.ButtonUp] = readKey(window, glfw.KeyUp)
+	result[nes.ButtonDown] = readKey(window, glfw.KeyDown)
+	result[nes.ButtonLeft] = readKey(window, glfw.KeyLeft)
+	result[nes.ButtonRight] = readKey(window, glfw.KeyRight)
+	return result
+}
+
+func readJoystick(joy glfw.Joystick) [8]bool {
+	var result [8]bool
+	if !glfw.JoystickPresent(joy) {
+		return result
+	}
+	axes := glfw.GetJoystickAxes(joy)
+	buttons := glfw.GetJoystickButtons(joy)
+	result[nes.ButtonA] = buttons[0] == 1
+	result[nes.ButtonB] = buttons[1] == 1
+	result[nes.ButtonSelect] = buttons[6] == 1
+	result[nes.ButtonStart] = buttons[7] == 1
+	result[nes.ButtonUp] = axes[1] < -0.5
+	result[nes.ButtonDown] = axes[1] > 0.5
+	result[nes.ButtonLeft] = axes[0] < -0.5
+	result[nes.ButtonRight] = axes[0] > 0.5
+	return result
+}
+
+func combineButtons(a, b [8]bool) [8]bool {
+	var result [8]bool
+	for i := 0; i < 8; i++ {
+		result[i] = a[i] || b[i]
+	}
+	return result
+}
+
+func updateControllers(window *glfw.Window, console *nes.Console) {
+	k1 := readKeys(window)
+	j1 := readJoystick(glfw.Joystick1)
+	j2 := readJoystick(glfw.Joystick2)
+	console.SetButtons1(combineButtons(k1, j1))
+	console.SetButtons2(j2)
 }
 
 func Run(console *nes.Console) {
+	runtime.GOMAXPROCS(2)
+	runtime.LockOSThread()
+
 	// portaudio.Initialize()
 	// defer portaudio.Terminate()
 
@@ -114,11 +148,9 @@ func Run(console *nes.Console) {
 	texture := createTexture()
 
 	for !window.ShouldClose() {
-		// step emulator
-		readKeys(window, console)
+		updateControllers(window, console)
 		console.StepFrame()
 		setTexture(texture, console.Buffer())
-		// render frame
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		drawQuad(window)
 		window.SwapBuffers()

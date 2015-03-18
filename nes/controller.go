@@ -12,7 +12,7 @@ const (
 )
 
 type Controller struct {
-	buttons [8]byte
+	buttons [8]bool
 	index   byte
 	strobe  byte
 }
@@ -21,28 +21,14 @@ func NewController() *Controller {
 	return &Controller{}
 }
 
-func (c *Controller) Press(button int) {
-	c.buttons[button] = 1
-}
-
-func (c *Controller) Release(button int) {
-	c.buttons[button] = 0
-}
-
-func (c *Controller) SetPressed(button int, pressed bool) {
-	if pressed {
-		c.Press(button)
-	} else {
-		c.Release(button)
-	}
+func (c *Controller) SetButtons(buttons [8]bool) {
+	c.buttons = buttons
 }
 
 func (c *Controller) Read() byte {
-	var value byte
-	if c.index < 8 {
-		value = c.buttons[c.index]
-	} else {
-		value = 0
+	value := byte(0)
+	if c.index < 8 && c.buttons[c.index] {
+		value = 1
 	}
 	c.index++
 	if c.strobe&1 == 1 {

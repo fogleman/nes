@@ -3,7 +3,6 @@ package nes
 import (
 	"image"
 	"image/color"
-	"log"
 )
 
 type Console struct {
@@ -59,13 +58,10 @@ func (console *Console) BackgroundColor() color.RGBA {
 	return palette[console.PPU.readPalette(0)%64]
 }
 
-func (console *Console) SetPressed(controller, button int, pressed bool) {
-	switch controller {
-	case 1:
-		console.Controller1.SetPressed(button, pressed)
-	case 2:
-		console.Controller2.SetPressed(button, pressed)
-	default:
-		log.Fatalf("unhandled controller press: %d", controller)
-	}
+func (console *Console) SetButtons1(buttons [8]bool) {
+	console.Controller1.SetButtons(buttons)
+}
+
+func (console *Console) SetButtons2(buttons [8]bool) {
+	console.Controller2.SetButtons(buttons)
 }
