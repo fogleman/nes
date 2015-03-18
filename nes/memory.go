@@ -55,7 +55,6 @@ func (mem *cpuMemory) Write(address uint16, value byte) {
 		mem.console.APU.writeRegister(address, value)
 	case address == 0x4016:
 		mem.console.Controller1.Write(value)
-	case address == 0x4017:
 		mem.console.Controller2.Write(value)
 	case address < 0x6000:
 		// TODO: I/O registers
