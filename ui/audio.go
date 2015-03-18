@@ -23,7 +23,7 @@ func (a *Audio) Start() error {
 	if err != nil {
 		return err
 	}
-	if err = stream.Start(); err != nil {
+	if err := stream.Start(); err != nil {
 		return err
 	}
 	a.stream = stream
