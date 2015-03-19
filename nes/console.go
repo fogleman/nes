@@ -28,7 +28,7 @@ func NewConsole(path string) (*Console, error) {
 		nil, nil, nil, cartridge, controller1, controller2, nil, ram}
 	console.Mapper = NewMapper(&console)
 	console.CPU = NewCPU(&console)
-	console.APU = NewAPU()
+	console.APU = NewAPU(&console)
 	console.PPU = NewPPU(&console)
 	return &console, nil
 }
@@ -39,6 +39,9 @@ func (console *Console) Step() int {
 	for i := 0; i < ppuCycles; i++ {
 		console.PPU.Step()
 		console.Mapper.Step()
+	}
+	for i := 0; i < cpuCycles; i++ {
+		console.APU.Step()
 	}
 	return cpuCycles
 }
