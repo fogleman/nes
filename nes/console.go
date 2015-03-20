@@ -68,3 +68,7 @@ func (console *Console) SetButtons1(buttons [8]bool) {
 func (console *Console) SetButtons2(buttons [8]bool) {
 	console.Controller2.SetButtons(buttons)
 }
+
+func (console *Console) SetAudioChannel(channel chan byte) {
+	console.APU.SetChannel(channel)
+}

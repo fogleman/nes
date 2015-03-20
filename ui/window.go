@@ -4,6 +4,8 @@ import (
 	"image"
 	"runtime"
 
+	"code.google.com/p/portaudio-go/portaudio"
+
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -120,14 +122,16 @@ func Run(console *nes.Console) {
 	// we need to keep OpenGL calls on a single thread
 	runtime.LockOSThread()
 
-	// portaudio.Initialize()
-	// defer portaudio.Terminate()
+	portaudio.Initialize()
+	defer portaudio.Terminate()
 
-	// audio := NewAudio()
-	// if err := audio.Start(); err != nil {
-	// 	panic(err)
-	// }
-	// defer audio.Stop()
+	audio := NewAudio()
+	if err := audio.Start(); err != nil {
+		panic(err)
+	}
+	defer audio.Stop()
+
+	console.SetAudioChannel(audio.channel)
 
 	err := glfw.Init()
 	if err != nil {

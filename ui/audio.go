@@ -9,7 +9,7 @@ type Audio struct {
 
 func NewAudio() *Audio {
 	a := Audio{}
-	a.channel = make(chan byte)
+	a.channel = make(chan byte, 44100)
 	return &a
 }
 
@@ -32,10 +32,6 @@ func (a *Audio) Start() error {
 
 func (a *Audio) Stop() error {
 	return a.stream.Close()
-}
-
-func (a *Audio) Enqueue(sample byte) {
-	a.channel <- sample
 }
 
 func (a *Audio) Callback(out []byte) {
