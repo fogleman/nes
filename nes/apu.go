@@ -34,6 +34,8 @@ type APU struct {
 func NewAPU(console *Console) *APU {
 	apu := APU{}
 	apu.console = console
+	apu.enablePulse1 = true
+	apu.enablePulse2 = true
 	return &apu
 }
 
@@ -237,6 +239,8 @@ func (p *Pulse) writeRegister3(value byte) {
 	p.lengthValue = lengthTable[value>>3]
 	p.timerPeriod = (p.timerPeriod & 0x00FF) | (uint16(value&7) << 8)
 	p.timerValue = p.timerPeriod
+	p.envelopeStart = true
+	p.dutyValue = 0
 }
 
 func (p *Pulse) stepTimer() {
