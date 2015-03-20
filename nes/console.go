@@ -53,6 +53,13 @@ func (console *Console) StepFrame() {
 	}
 }
 
+func (console *Console) StepSeconds(seconds float64) {
+	cycles := int(1789773 * seconds)
+	for cycles > 0 {
+		cycles -= console.Step()
+	}
+}
+
 func (console *Console) Buffer() *image.RGBA {
 	return console.PPU.buffer
 }

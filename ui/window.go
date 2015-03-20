@@ -148,17 +148,21 @@ func Run(console *nes.Console) {
 	gl.Enable(gl.TEXTURE_2D)
 	texture := createTexture()
 
+	timestamp := glfw.GetTime()
+
 	audio := NewAudio()
+	console.SetAudioChannel(audio.channel)
 	if err := audio.Start(); err != nil {
 		panic(err)
 	}
 	defer audio.Stop()
 
-	console.SetAudioChannel(audio.channel)
-
 	for !window.ShouldClose() {
+		now := glfw.GetTime()
+		elapsed := now - timestamp
+		timestamp = now
 		updateControllers(window, console)
-		console.StepFrame()
+		console.StepSeconds(elapsed)
 		setTexture(texture, console.Buffer())
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		drawQuad(window)
