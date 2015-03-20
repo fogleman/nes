@@ -21,6 +21,18 @@ var triangleTable = []byte{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 }
 
+var pulseTable [31]float64
+var tndTable [203]float64
+
+func init() {
+	for i := 0; i < 31; i++ {
+		pulseTable[i] = 95.52 / (8128.0/float64(i) + 100)
+	}
+	for i := 0; i < 203; i++ {
+		tndTable[i] = 163.67 / (24329.0/float64(i) + 100)
+	}
+}
+
 // APU
 
 type APU struct {
@@ -68,7 +80,14 @@ func (apu *APU) Step() {
 }
 
 func (apu *APU) sendSample() {
-	var p1, p2, t byte
+	select {
+	case apu.channel <- apu.output():
+	default:
+	}
+}
+
+func (apu *APU) output() byte {
+	var p1, p2, t, n, d byte
 	if apu.enablePulse1 {
 		p1 = apu.pulse1.output()
 	}
@@ -78,11 +97,9 @@ func (apu *APU) sendSample() {
 	if apu.enableTriangle {
 		t = apu.triangle.output()
 	}
-	out := (p1 + p2 + t) / 3
-	select {
-	case apu.channel <- out:
-	default:
-	}
+	pulseOut := pulseTable[p1+p2]
+	tndOut := tndTable[3*t+2*n+d]
+	return byte((pulseOut + tndOut) * 255)
 }
 
 // mode 0:    mode 1:       function
