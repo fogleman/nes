@@ -19,6 +19,14 @@ const (
 	title   = "NES"
 )
 
+func init() {
+	// we need a parallel OS thread to avoid audio stuttering
+	runtime.GOMAXPROCS(2)
+
+	// we need to keep OpenGL calls on a single thread
+	runtime.LockOSThread()
+}
+
 func createTexture() uint32 {
 	var texture uint32
 	gl.GenTextures(1, &texture)
@@ -116,22 +124,8 @@ func updateControllers(window *glfw.Window, console *nes.Console) {
 }
 
 func Run(console *nes.Console) {
-	// we need a parallel OS thread to avoid audio stuttering
-	runtime.GOMAXPROCS(2)
-
-	// we need to keep OpenGL calls on a single thread
-	runtime.LockOSThread()
-
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-
-	audio := NewAudio()
-	if err := audio.Start(); err != nil {
-		panic(err)
-	}
-	defer audio.Stop()
-
-	console.SetAudioChannel(audio.channel)
 
 	err := glfw.Init()
 	if err != nil {
@@ -153,6 +147,14 @@ func Run(console *nes.Console) {
 
 	gl.Enable(gl.TEXTURE_2D)
 	texture := createTexture()
+
+	audio := NewAudio()
+	if err := audio.Start(); err != nil {
+		panic(err)
+	}
+	defer audio.Stop()
+
+	console.SetAudioChannel(audio.channel)
 
 	for !window.ShouldClose() {
 		updateControllers(window, console)

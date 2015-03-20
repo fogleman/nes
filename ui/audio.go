@@ -1,6 +1,10 @@
 package ui
 
-import "code.google.com/p/portaudio-go/portaudio"
+import (
+	"fmt"
+
+	"code.google.com/p/portaudio-go/portaudio"
+)
 
 type Audio struct {
 	stream  *portaudio.Stream
@@ -35,12 +39,17 @@ func (a *Audio) Stop() error {
 }
 
 func (a *Audio) Callback(out []byte) {
+	count := 0
 	for i := range out {
 		select {
 		case sample := <-a.channel:
 			out[i] = sample
 		default:
 			out[i] = 0
+			count++
 		}
+	}
+	if count > 0 {
+		fmt.Println(count)
 	}
 }

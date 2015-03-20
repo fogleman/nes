@@ -1,17 +1,15 @@
 package nes
 
-import "fmt"
-
 const cpuRate = 1789773
 const frameCounterRate = cpuRate / 240.0
-const sampleRate = cpuRate / 44100.0
+const sampleRate = cpuRate / 44100.0 / 2
 
 var lengthTable = []byte{
 	10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
 	12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30,
 }
 
-var pulseTable = [][]byte{
+var dutyTable = [][]byte{
 	{0, 1, 0, 0, 0, 0, 0, 0},
 	{0, 1, 1, 0, 0, 0, 0, 0},
 	{0, 1, 1, 1, 1, 0, 0, 0},
@@ -21,14 +19,16 @@ var pulseTable = [][]byte{
 // APU
 
 type APU struct {
-	console             *Console
-	channel             chan byte
-	pulse1              Pulse
-	pulse2              Pulse
-	cycle               uint64
-	frame               uint64
-	frameCounterMode    byte
-	frameCounterInhibit byte
+	console      *Console
+	channel      chan byte
+	pulse1       Pulse
+	pulse2       Pulse
+	cycle        uint64
+	framePeriod  byte
+	frameValue   byte
+	frameIRQ     bool
+	enablePulse1 bool
+	enablePulse2 bool
 }
 
 func NewAPU(console *Console) *APU {
@@ -45,7 +45,9 @@ func (apu *APU) Step() {
 	cycle1 := apu.cycle
 	apu.cycle++
 	cycle2 := apu.cycle
-	apu.stepTimer()
+	if apu.cycle%2 == 0 {
+		apu.stepTimer()
+	}
 	f1 := int(float64(cycle1) / frameCounterRate)
 	f2 := int(float64(cycle2) / frameCounterRate)
 	if f1 != f2 {
@@ -59,12 +61,16 @@ func (apu *APU) Step() {
 }
 
 func (apu *APU) sendSample() {
-	p1 := apu.pulse1.output()
-	p2 := apu.pulse2.output()
-	out := byte((int(p1) + int(p2)) / 2)
+	var p1, p2 byte
+	if apu.enablePulse1 {
+		p1 = apu.pulse1.output()
+	}
+	if apu.enablePulse2 {
+		p2 = apu.pulse2.output()
+	}
+	out := (p1 + p2) / 2
 	select {
 	case apu.channel <- out:
-		fmt.Println(out)
 	default:
 	}
 }
@@ -75,10 +81,10 @@ func (apu *APU) sendSample() {
 //  - l - l    l - l - -    Length counter and sweep
 //  e e e e    e e e e -    Envelope and linear counter
 func (apu *APU) stepFrameCounter() {
-	apu.frame++
-	switch apu.frameCounterMode {
-	case 0:
-		switch apu.frame % 4 {
+	switch apu.framePeriod {
+	case 4:
+		apu.frameValue = (apu.frameValue + 1) % 4
+		switch apu.frameValue {
 		case 0, 2:
 			apu.stepEnvelope()
 		case 1:
@@ -91,8 +97,9 @@ func (apu *APU) stepFrameCounter() {
 			apu.stepLength()
 			apu.fireIRQ()
 		}
-	case 1:
-		switch apu.frame % 5 {
+	case 5:
+		apu.frameValue = (apu.frameValue + 1) % 5
+		switch apu.frameValue {
 		case 1, 3:
 			apu.stepEnvelope()
 		case 0, 2:
@@ -124,7 +131,7 @@ func (apu *APU) stepLength() {
 }
 
 func (apu *APU) fireIRQ() {
-	if apu.frameCounterInhibit == 0 {
+	if apu.frameIRQ {
 		apu.console.CPU.triggerIRQ()
 	}
 }
@@ -171,14 +178,14 @@ func (apu *APU) readStatus() byte {
 }
 
 func (apu *APU) writeControl(value byte) {
+	apu.enablePulse1 = value&1 == 1
+	apu.enablePulse2 = value&2 == 2
 }
 
 func (apu *APU) writeFrameCounter(value byte) {
-	apu.frameCounterMode = (value >> 7) & 1
-	apu.frameCounterInhibit = (value >> 6) & 1
+	apu.framePeriod = 4 + (value>>7)&1
+	apu.frameIRQ = (value>>6)&1 == 0
 }
-
-// Envelope, Sweep, Length Units
 
 // Pulse
 
@@ -235,14 +242,10 @@ func (p *Pulse) writeRegister3(value byte) {
 func (p *Pulse) stepTimer() {
 	if p.timerValue == 0 {
 		p.timerValue = p.timerPeriod
-		p.stepSequencer()
+		p.dutyValue = (p.dutyValue + 1) % 8
 	} else {
 		p.timerValue--
 	}
-}
-
-func (p *Pulse) stepSequencer() {
-	p.dutyValue = (p.dutyValue + 1) % 8
 }
 
 func (p *Pulse) stepEnvelope() {
@@ -257,6 +260,7 @@ func (p *Pulse) stepEnvelope() {
 			p.envelopeVolume--
 		} else if p.envelopeLoop {
 			p.envelopeVolume = 15
+			p.envelopeValue = p.envelopePeriod
 		}
 	}
 }
@@ -296,7 +300,7 @@ func (p *Pulse) output() byte {
 	if p.lengthValue == 0 {
 		return 0
 	}
-	if pulseTable[p.dutyMode][p.dutyValue] == 0 {
+	if dutyTable[p.dutyMode][p.dutyValue] == 0 {
 		return 0
 	}
 	if p.timerPeriod < 8 || p.timerPeriod > 0x7FF {
