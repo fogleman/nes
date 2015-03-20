@@ -1,8 +1,7 @@
 package nes
 
-const cpuRate = 1789773
-const frameCounterRate = cpuRate / 240.0
-const sampleRate = cpuRate / 44100.0 / 2
+const frameCounterRate = CPUFrequency / 240.0
+const sampleRate = CPUFrequency / 44100.0 / 2
 
 var lengthTable = []byte{
 	10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,

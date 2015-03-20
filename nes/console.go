@@ -46,15 +46,18 @@ func (console *Console) Step() int {
 	return cpuCycles
 }
 
-func (console *Console) StepFrame() {
+func (console *Console) StepFrame() int {
+	cpuCycles := 0
 	frame := console.PPU.Frame
 	for frame == console.PPU.Frame {
-		console.Step()
+		cpuCycles += console.Step()
 	}
+	return cpuCycles
 }
 
 func (console *Console) StepSeconds(seconds float64) {
-	cycles := int(1789773 * seconds)
+	cycles := int(CPUFrequency * seconds)
+	// cycles -= console.StepFrame()
 	for cycles > 0 {
 		cycles -= console.Step()
 	}

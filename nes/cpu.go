@@ -2,6 +2,8 @@ package nes
 
 import "fmt"
 
+const CPUFrequency = 1789773
+
 // interrupt types
 const (
 	_ = iota
