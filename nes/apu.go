@@ -16,19 +16,26 @@ var dutyTable = [][]byte{
 	{1, 0, 0, 1, 1, 1, 1, 1},
 }
 
+var triangleTable = []byte{
+	15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+}
+
 // APU
 
 type APU struct {
-	console      *Console
-	channel      chan byte
-	pulse1       Pulse
-	pulse2       Pulse
-	cycle        uint64
-	framePeriod  byte
-	frameValue   byte
-	frameIRQ     bool
-	enablePulse1 bool
-	enablePulse2 bool
+	console        *Console
+	channel        chan byte
+	pulse1         Pulse
+	pulse2         Pulse
+	triangle       Triangle
+	cycle          uint64
+	framePeriod    byte
+	frameValue     byte
+	frameIRQ       bool
+	enablePulse1   bool
+	enablePulse2   bool
+	enableTriangle bool
 }
 
 func NewAPU(console *Console) *APU {
@@ -47,9 +54,7 @@ func (apu *APU) Step() {
 	cycle1 := apu.cycle
 	apu.cycle++
 	cycle2 := apu.cycle
-	if apu.cycle%2 == 0 {
-		apu.stepTimer()
-	}
+	apu.stepTimer()
 	f1 := int(float64(cycle1) / frameCounterRate)
 	f2 := int(float64(cycle2) / frameCounterRate)
 	if f1 != f2 {
@@ -63,14 +68,17 @@ func (apu *APU) Step() {
 }
 
 func (apu *APU) sendSample() {
-	var p1, p2 byte
+	var p1, p2, t byte
 	if apu.enablePulse1 {
 		p1 = apu.pulse1.output()
 	}
 	if apu.enablePulse2 {
 		p2 = apu.pulse2.output()
 	}
-	out := (p1 + p2) / 2
+	if apu.enableTriangle {
+		t = apu.triangle.output()
+	}
+	out := (p1 + p2 + t) / 3
 	select {
 	case apu.channel <- out:
 	default:
@@ -113,13 +121,17 @@ func (apu *APU) stepFrameCounter() {
 }
 
 func (apu *APU) stepTimer() {
-	apu.pulse1.stepTimer()
-	apu.pulse2.stepTimer()
+	if apu.cycle%2 == 0 {
+		apu.pulse1.stepTimer()
+		apu.pulse2.stepTimer()
+	}
+	apu.triangle.stepTimer()
 }
 
 func (apu *APU) stepEnvelope() {
 	apu.pulse1.stepEnvelope()
 	apu.pulse2.stepEnvelope()
+	apu.triangle.stepCounter()
 }
 
 func (apu *APU) stepSweep() {
@@ -130,6 +142,7 @@ func (apu *APU) stepSweep() {
 func (apu *APU) stepLength() {
 	apu.pulse1.stepLength()
 	apu.pulse2.stepLength()
+	apu.triangle.stepLength()
 }
 
 func (apu *APU) fireIRQ() {
@@ -151,21 +164,27 @@ func (apu *APU) readRegister(address uint16) byte {
 func (apu *APU) writeRegister(address uint16, value byte) {
 	switch address {
 	case 0x4000:
-		apu.pulse1.writeRegister0(value)
+		apu.pulse1.writeControl(value)
 	case 0x4001:
-		apu.pulse1.writeRegister1(value)
+		apu.pulse1.writeSweep(value)
 	case 0x4002:
-		apu.pulse1.writeRegister2(value)
+		apu.pulse1.writeTimerLow(value)
 	case 0x4003:
-		apu.pulse1.writeRegister3(value)
+		apu.pulse1.writeTimerHigh(value)
 	case 0x4004:
-		apu.pulse2.writeRegister0(value)
+		apu.pulse2.writeControl(value)
 	case 0x4005:
-		apu.pulse2.writeRegister1(value)
+		apu.pulse2.writeSweep(value)
 	case 0x4006:
-		apu.pulse2.writeRegister2(value)
+		apu.pulse2.writeTimerLow(value)
 	case 0x4007:
-		apu.pulse2.writeRegister3(value)
+		apu.pulse2.writeTimerHigh(value)
+	case 0x4008:
+		apu.triangle.writeControl(value)
+	case 0x400A:
+		apu.triangle.writeTimerLow(value)
+	case 0x400B:
+		apu.triangle.writeTimerHigh(value)
 	case 0x4015:
 		apu.writeControl(value)
 	case 0x4017:
@@ -182,6 +201,7 @@ func (apu *APU) readStatus() byte {
 func (apu *APU) writeControl(value byte) {
 	apu.enablePulse1 = value&1 == 1
 	apu.enablePulse2 = value&2 == 2
+	apu.enableTriangle = value&4 == 4
 }
 
 func (apu *APU) writeFrameCounter(value byte) {
@@ -213,7 +233,7 @@ type Pulse struct {
 	constantVolume  byte
 }
 
-func (p *Pulse) writeRegister0(value byte) {
+func (p *Pulse) writeControl(value byte) {
 	p.dutyMode = (value >> 6) & 3
 	p.lengthEnabled = (value>>5)&1 == 0
 	p.envelopeLoop = (value>>5)&1 == 1
@@ -223,7 +243,7 @@ func (p *Pulse) writeRegister0(value byte) {
 	p.envelopeStart = true
 }
 
-func (p *Pulse) writeRegister1(value byte) {
+func (p *Pulse) writeSweep(value byte) {
 	p.sweepEnabled = (value>>7)&1 == 1
 	p.sweepPeriod = (value >> 4) & 7
 	p.sweepNegate = (value>>3)&1 == 1
@@ -231,11 +251,11 @@ func (p *Pulse) writeRegister1(value byte) {
 	p.sweepReload = true
 }
 
-func (p *Pulse) writeRegister2(value byte) {
+func (p *Pulse) writeTimerLow(value byte) {
 	p.timerPeriod = (p.timerPeriod & 0xFF00) | uint16(value)
 }
 
-func (p *Pulse) writeRegister3(value byte) {
+func (p *Pulse) writeTimerHigh(value byte) {
 	p.lengthValue = lengthTable[value>>3]
 	p.timerPeriod = (p.timerPeriod & 0x00FF) | (uint16(value&7) << 8)
 	p.timerValue = p.timerPeriod
@@ -315,4 +335,71 @@ func (p *Pulse) output() byte {
 	} else {
 		return p.constantVolume
 	}
+}
+
+// Triangle
+
+type Triangle struct {
+	lengthEnabled bool
+	lengthValue   byte
+	timerPeriod   uint16
+	timerValue    uint16
+	dutyValue     byte
+	counterPeriod byte
+	counterValue  byte
+	counterReload bool
+}
+
+func (t *Triangle) writeControl(value byte) {
+	t.lengthEnabled = (value>>7)&1 == 0
+	t.counterPeriod = value & 0x7F
+}
+
+func (t *Triangle) writeTimerLow(value byte) {
+	t.timerPeriod = (t.timerPeriod & 0xFF00) | uint16(value)
+}
+
+func (t *Triangle) writeTimerHigh(value byte) {
+	t.lengthValue = lengthTable[value>>3]
+	t.timerPeriod = (t.timerPeriod & 0x00FF) | (uint16(value&7) << 8)
+	t.timerValue = t.timerPeriod
+	t.counterReload = true
+}
+
+func (t *Triangle) stepTimer() {
+	if t.timerValue == 0 {
+		t.timerValue = t.timerPeriod
+		if t.lengthValue > 0 && t.counterValue > 0 {
+			t.dutyValue = (t.dutyValue + 1) % 32
+		}
+	} else {
+		t.timerValue--
+	}
+}
+
+func (t *Triangle) stepLength() {
+	if t.lengthEnabled && t.lengthValue > 0 {
+		t.lengthValue--
+	}
+}
+
+func (t *Triangle) stepCounter() {
+	if t.counterReload {
+		t.counterValue = t.counterPeriod
+	} else if t.counterValue > 0 {
+		t.counterValue--
+	}
+	if t.lengthEnabled {
+		t.counterReload = false
+	}
+}
+
+func (t *Triangle) output() byte {
+	if t.lengthValue == 0 {
+		return 0
+	}
+	if t.counterValue == 0 {
+		return 0
+	}
+	return triangleTable[t.dutyValue]
 }
