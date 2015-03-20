@@ -61,7 +61,7 @@ func (console *Console) StepSeconds(seconds float64) {
 }
 
 func (console *Console) Buffer() *image.RGBA {
-	return console.PPU.buffer
+	return console.PPU.front
 }
 
 func (console *Console) BackgroundColor() color.RGBA {

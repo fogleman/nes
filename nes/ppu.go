@@ -18,7 +18,8 @@ type PPU struct {
 	paletteData   [32]byte
 	nameTableData [2048]byte
 	oamData       [256]byte
-	buffer        *image.RGBA
+	front         *image.RGBA
+	back          *image.RGBA
 
 	// PPU registers
 	v uint16 // current vram address (15 bit)
@@ -76,7 +77,8 @@ type PPU struct {
 
 func NewPPU(console *Console) *PPU {
 	ppu := PPU{Memory: NewPPUMemory(console), console: console}
-	ppu.buffer = image.NewRGBA(image.Rect(0, 0, 256, 240))
+	ppu.front = image.NewRGBA(image.Rect(0, 0, 256, 240))
+	ppu.back = image.NewRGBA(image.Rect(0, 0, 256, 240))
 	ppu.Reset()
 	return &ppu
 }
@@ -337,6 +339,7 @@ func (ppu *PPU) copyY() {
 }
 
 func (ppu *PPU) setVerticalBlank() {
+	ppu.front, ppu.back = ppu.back, ppu.front
 	ppu.VerticalBlank = 1
 	if ppu.flagGenerateNMI != 0 {
 		ppu.console.CPU.triggerNMI()
@@ -452,7 +455,7 @@ func (ppu *PPU) renderPixel() {
 		}
 	}
 	c := palette[ppu.readPalette(uint16(color))%64]
-	ppu.buffer.SetRGBA(x, y, c)
+	ppu.back.SetRGBA(x, y, c)
 }
 
 func (ppu *PPU) fetchSpritePattern(i, row int) uint32 {
