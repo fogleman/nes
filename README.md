@@ -14,6 +14,7 @@ compile the binary and place it in your `$GOPATH/bin` directory.
 
     github.com/go-gl/gl/v2.1/gl
     github.com/go-gl/glfw/v3.1/glfw
+    code.google.com/p/portaudio-go/portaudio
 
 ### Controls
 
