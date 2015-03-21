@@ -20,6 +20,10 @@ var triangleTable = []byte{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 }
 
+var noiseTable = []uint16{
+	4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
+}
+
 var pulseTable [31]float64
 var tndTable [203]float64
 
@@ -40,6 +44,7 @@ type APU struct {
 	pulse1         Pulse
 	pulse2         Pulse
 	triangle       Triangle
+	noise          Noise
 	cycle          uint64
 	framePeriod    byte
 	frameValue     byte
@@ -47,6 +52,7 @@ type APU struct {
 	enablePulse1   bool
 	enablePulse2   bool
 	enableTriangle bool
+	enableNoise    bool
 }
 
 func NewAPU(console *Console) *APU {
@@ -54,6 +60,9 @@ func NewAPU(console *Console) *APU {
 	apu.console = console
 	apu.enablePulse1 = true
 	apu.enablePulse2 = true
+	apu.enableTriangle = true
+	apu.enableNoise = true
+	apu.noise.shiftRegister = 1
 	return &apu
 }
 
@@ -95,6 +104,9 @@ func (apu *APU) output() byte {
 	}
 	if apu.enableTriangle {
 		t = apu.triangle.output()
+	}
+	if apu.enableNoise {
+		n = apu.noise.output()
 	}
 	pulseOut := pulseTable[p1+p2]
 	tndOut := tndTable[3*t+2*n+d]
@@ -140,6 +152,7 @@ func (apu *APU) stepTimer() {
 	if apu.cycle%2 == 0 {
 		apu.pulse1.stepTimer()
 		apu.pulse2.stepTimer()
+		apu.noise.stepTimer()
 	}
 	apu.triangle.stepTimer()
 }
@@ -148,6 +161,7 @@ func (apu *APU) stepEnvelope() {
 	apu.pulse1.stepEnvelope()
 	apu.pulse2.stepEnvelope()
 	apu.triangle.stepCounter()
+	apu.noise.stepEnvelope()
 }
 
 func (apu *APU) stepSweep() {
@@ -159,6 +173,7 @@ func (apu *APU) stepLength() {
 	apu.pulse1.stepLength()
 	apu.pulse2.stepLength()
 	apu.triangle.stepLength()
+	apu.noise.stepLength()
 }
 
 func (apu *APU) fireIRQ() {
@@ -197,10 +212,18 @@ func (apu *APU) writeRegister(address uint16, value byte) {
 		apu.pulse2.writeTimerHigh(value)
 	case 0x4008:
 		apu.triangle.writeControl(value)
+	case 0x4009:
 	case 0x400A:
 		apu.triangle.writeTimerLow(value)
 	case 0x400B:
 		apu.triangle.writeTimerHigh(value)
+	case 0x400C:
+		apu.noise.writeControl(value)
+	case 0x400D:
+	case 0x400E:
+		apu.noise.writePeriod(value)
+	case 0x400F:
+		apu.noise.writeLength(value)
 	case 0x4015:
 		apu.writeControl(value)
 	case 0x4017:
@@ -218,6 +241,7 @@ func (apu *APU) writeControl(value byte) {
 	apu.enablePulse1 = value&1 == 1
 	apu.enablePulse2 = value&2 == 2
 	apu.enableTriangle = value&4 == 4
+	apu.enableNoise = value&8 == 8
 }
 
 func (apu *APU) writeFrameCounter(value byte) {
@@ -418,4 +442,96 @@ func (t *Triangle) output() byte {
 		return 0
 	}
 	return triangleTable[t.dutyValue]
+}
+
+// Noise
+
+type Noise struct {
+	mode            bool
+	shiftRegister   uint16
+	lengthEnabled   bool
+	lengthValue     byte
+	timerPeriod     uint16
+	timerValue      uint16
+	envelopeEnabled bool
+	envelopeLoop    bool
+	envelopeStart   bool
+	envelopePeriod  byte
+	envelopeValue   byte
+	envelopeVolume  byte
+	constantVolume  byte
+}
+
+func (n *Noise) writeControl(value byte) {
+	n.lengthEnabled = (value>>5)&1 == 0
+	n.envelopeLoop = (value>>5)&1 == 1
+	n.envelopeEnabled = (value>>4)&1 == 0
+	n.envelopePeriod = value & 15
+	n.constantVolume = value & 15
+	n.envelopeStart = true
+}
+
+func (n *Noise) writePeriod(value byte) {
+	n.mode = value&0x80 == 0x80
+	n.timerPeriod = noiseTable[value&0x0F]
+}
+
+func (n *Noise) writeLength(value byte) {
+	n.lengthValue = lengthTable[value>>3]
+	n.envelopeStart = true
+}
+
+func (n *Noise) stepTimer() {
+	if n.timerValue == 0 {
+		n.timerValue = n.timerPeriod
+		var shift byte
+		if n.mode {
+			shift = 6
+		} else {
+			shift = 1
+		}
+		b1 := n.shiftRegister & 1
+		b2 := (n.shiftRegister >> shift) & 1
+		n.shiftRegister >>= 1
+		n.shiftRegister |= (b1 ^ b2) << 14
+	} else {
+		n.timerValue--
+	}
+}
+
+func (n *Noise) stepEnvelope() {
+	if n.envelopeStart {
+		n.envelopeVolume = 15
+		n.envelopeValue = n.envelopePeriod
+		n.envelopeStart = false
+	} else if n.envelopeValue > 0 {
+		n.envelopeValue--
+	} else {
+		if n.envelopeVolume > 0 {
+			n.envelopeVolume--
+		} else if n.envelopeLoop {
+			n.envelopeVolume = 15
+			n.envelopeValue = n.envelopePeriod
+		}
+	}
+}
+
+func (n *Noise) stepLength() {
+	if n.lengthEnabled && n.lengthValue > 0 {
+		n.lengthValue--
+	}
+}
+
+func (n *Noise) output() byte {
+	if n.lengthValue == 0 {
+		return 0
+	}
+	if n.shiftRegister&1 == 1 {
+		return 0
+	}
+	if n.envelopeEnabled {
+		return n.envelopeVolume
+	} else {
+		return n.constantVolume
+	}
 }
