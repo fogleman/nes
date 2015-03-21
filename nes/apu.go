@@ -63,6 +63,8 @@ func NewAPU(console *Console) *APU {
 	apu.enableTriangle = true
 	apu.enableNoise = true
 	apu.noise.shiftRegister = 1
+	apu.pulse1.channel = 1
+	apu.pulse2.channel = 2
 	return &apu
 }
 
@@ -261,6 +263,7 @@ func (apu *APU) writeFrameCounter(value byte) {
 // Pulse
 
 type Pulse struct {
+	channel         byte
 	lengthEnabled   bool
 	lengthValue     byte
 	timerPeriod     uint16
@@ -307,7 +310,6 @@ func (p *Pulse) writeTimerLow(value byte) {
 func (p *Pulse) writeTimerHigh(value byte) {
 	p.lengthValue = lengthTable[value>>3]
 	p.timerPeriod = (p.timerPeriod & 0x00FF) | (uint16(value&7) << 8)
-	p.timerValue = p.timerPeriod
 	p.envelopeStart = true
 	p.dutyValue = 0
 }
@@ -333,8 +335,8 @@ func (p *Pulse) stepEnvelope() {
 			p.envelopeVolume--
 		} else if p.envelopeLoop {
 			p.envelopeVolume = 15
-			p.envelopeValue = p.envelopePeriod
 		}
+		p.envelopeValue = p.envelopePeriod
 	}
 }
 
@@ -364,9 +366,13 @@ func (p *Pulse) stepLength() {
 func (p *Pulse) sweep() {
 	delta := p.timerPeriod >> p.sweepShift
 	if p.sweepNegate {
-		delta = -delta
+		p.timerPeriod -= delta
+		if p.channel == 1 {
+			p.timerPeriod--
+		}
+	} else {
+		p.timerPeriod += delta
 	}
-	p.timerPeriod += delta
 }
 
 func (p *Pulse) output() byte {
@@ -520,8 +526,8 @@ func (n *Noise) stepEnvelope() {
 			n.envelopeVolume--
 		} else if n.envelopeLoop {
 			n.envelopeVolume = 15
-			n.envelopeValue = n.envelopePeriod
 		}
+		n.envelopeValue = n.envelopePeriod
 	}
 }
 
