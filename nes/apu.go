@@ -24,15 +24,15 @@ var noiseTable = []uint16{
 	4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
 }
 
-var pulseTable [31]float64
-var tndTable [203]float64
+var pulseTable [31]float32
+var tndTable [203]float32
 
 func init() {
 	for i := 0; i < 31; i++ {
-		pulseTable[i] = 95.52 / (8128.0/float64(i) + 100)
+		pulseTable[i] = 95.52 / (8128.0/float32(i) + 100)
 	}
 	for i := 0; i < 203; i++ {
-		tndTable[i] = 163.67 / (24329.0/float64(i) + 100)
+		tndTable[i] = 163.67 / (24329.0/float32(i) + 100)
 	}
 }
 
@@ -40,7 +40,7 @@ func init() {
 
 type APU struct {
 	console        *Console
-	channel        chan byte
+	channel        chan float32
 	pulse1         Pulse
 	pulse2         Pulse
 	triangle       Triangle
@@ -64,10 +64,6 @@ func NewAPU(console *Console) *APU {
 	apu.enableNoise = true
 	apu.noise.shiftRegister = 1
 	return &apu
-}
-
-func (apu *APU) SetChannel(channel chan byte) {
-	apu.channel = channel
 }
 
 func (apu *APU) Step() {
@@ -94,7 +90,7 @@ func (apu *APU) sendSample() {
 	}
 }
 
-func (apu *APU) output() byte {
+func (apu *APU) output() float32 {
 	var p1, p2, t, n, d byte
 	if apu.enablePulse1 {
 		p1 = apu.pulse1.output()
@@ -110,7 +106,7 @@ func (apu *APU) output() byte {
 	}
 	pulseOut := pulseTable[p1+p2]
 	tndOut := tndTable[3*t+2*n+d]
-	return byte((pulseOut + tndOut) * 255)
+	return pulseOut + tndOut
 }
 
 // mode 0:    mode 1:       function
@@ -234,7 +230,20 @@ func (apu *APU) writeRegister(address uint16, value byte) {
 }
 
 func (apu *APU) readStatus() byte {
-	return 0
+	var result byte
+	if apu.pulse1.lengthValue > 0 {
+		result |= 1
+	}
+	if apu.pulse2.lengthValue > 0 {
+		result |= 2
+	}
+	if apu.triangle.lengthValue > 0 {
+		result |= 4
+	}
+	if apu.noise.lengthValue > 0 {
+		result |= 8
+	}
+	return result
 }
 
 func (apu *APU) writeControl(value byte) {

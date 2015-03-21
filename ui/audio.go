@@ -1,19 +1,15 @@
 package ui
 
-import (
-	"fmt"
-
-	"code.google.com/p/portaudio-go/portaudio"
-)
+import "code.google.com/p/portaudio-go/portaudio"
 
 type Audio struct {
 	stream  *portaudio.Stream
-	channel chan byte
+	channel chan float32
 }
 
 func NewAudio() *Audio {
 	a := Audio{}
-	a.channel = make(chan byte, 44100)
+	a.channel = make(chan float32, 44100)
 	return &a
 }
 
@@ -38,18 +34,13 @@ func (a *Audio) Stop() error {
 	return a.stream.Close()
 }
 
-func (a *Audio) Callback(out []byte) {
-	count := 0
+func (a *Audio) Callback(out []float32) {
 	for i := range out {
 		select {
 		case sample := <-a.channel:
 			out[i] = sample
 		default:
 			out[i] = 0
-			count++
 		}
-	}
-	if count > 0 {
-		fmt.Println(count)
 	}
 }
