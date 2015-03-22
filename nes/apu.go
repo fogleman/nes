@@ -258,6 +258,12 @@ func (apu *APU) writeControl(value byte) {
 func (apu *APU) writeFrameCounter(value byte) {
 	apu.framePeriod = 4 + (value>>7)&1
 	apu.frameIRQ = (value>>6)&1 == 0
+	apu.frameValue = 0 // ?
+	if apu.framePeriod == 5 {
+		apu.stepEnvelope()
+		apu.stepSweep()
+		apu.stepLength()
+	}
 }
 
 // Pulse
@@ -385,6 +391,9 @@ func (p *Pulse) output() byte {
 	if p.timerPeriod < 8 || p.timerPeriod > 0x7FF {
 		return 0
 	}
+	// if !p.sweepNegate && p.timerPeriod+(p.timerPeriod>>p.sweepShift) > 0x7FF {
+	// 	return 0
+	// }
 	if p.envelopeEnabled {
 		return p.envelopeVolume
 	} else {
