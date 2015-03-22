@@ -253,6 +253,18 @@ func (apu *APU) writeControl(value byte) {
 	apu.enablePulse2 = value&2 == 2
 	apu.enableTriangle = value&4 == 4
 	apu.enableNoise = value&8 == 8
+	if !apu.enablePulse1 {
+		apu.pulse1.lengthValue = 0
+	}
+	if !apu.enablePulse2 {
+		apu.pulse2.lengthValue = 0
+	}
+	if !apu.enableTriangle {
+		apu.triangle.lengthValue = 0
+	}
+	if !apu.enableNoise {
+		apu.noise.lengthValue = 0
+	}
 }
 
 func (apu *APU) writeFrameCounter(value byte) {
