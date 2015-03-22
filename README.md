@@ -4,6 +4,8 @@ This is an NES emulator written in Go.
 
 ### Screenshots
 
+![Screenshots](http://i.imgur.com/vD3FXVh.png)
+
 The link below contains hundreds of screenshots that were generated
 automatically by loading a ROM, emulating for a few seconds and then saving
 the screen.
