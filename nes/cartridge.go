@@ -1,12 +1,8 @@
 package nes
 
 type Cartridge struct {
-	PRG     []byte // PRG-ROM banks
-	CHR     []byte // CHR-ROM banks
-	SRAM    []byte // Save RAM
-	Mapper  byte   // mapper type
-	Mirror  byte   // mirroring mode
-	Battery byte   // battery present
+	PRG, CHR, SRAM []byte // PRG-ROM banks, CHR-ROM banks, // Save RAM
+	Mapper, Mirror, Battery byte   // mapper type, mirroring type, battery present
 }
 
 func NewCartridge(prg, chr []byte, mapper, mirror, battery byte) *Cartridge {
