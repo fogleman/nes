@@ -2,6 +2,14 @@
 
 This is an NES emulator written in Go.
 
+### Screenshots
+
+The link below contains hundreds of screenshots that were generated
+automatically by loading a ROM, emulating for a few seconds and then saving
+the screen.
+
+http://www.michaelfogleman.com/static/nes/
+
 ### Usage
 
     go get github.com/fogleman/nes
@@ -17,6 +25,9 @@ compile the binary and place it in your `$GOPATH/bin` directory.
     code.google.com/p/portaudio-go/portaudio
 
 ### Controls
+
+Joysticks are supported, although the button mapping is currently hard-coded.
+Keyboard controls are indicated below.
 
 | Nintendo              | Emulator    |
 | --------------------- | ----------- |
@@ -40,9 +51,8 @@ mappers soon. To see what games should work, consult this list:
 
 [NES Mapper List](http://tuxnes.sourceforge.net/nesmapper.txt)
 
-### Screenshots
+### Known Issues
 
-Here are hundreds of screenshots that were generated automatically by loading
-a ROM, emulating for a few seconds and then saving the screen.
-
-http://www.michaelfogleman.com/static/nes/
+* the APU DMC channel is not yet implemented
+* there are some minor issues with PPU timing, but most games work OK anyway
+* some games just show a black screen, not sure why yet
