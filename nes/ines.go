@@ -11,11 +11,7 @@ const iNESFileMagic = 0x1a53454e
 
 type iNESFileHeader struct {
 	Magic    uint32  // iNES magic number
-	NumPRG   byte    // number of PRG-ROM banks (16KB each)
-	NumCHR   byte    // number of CHR-ROM banks (8KB each)
-	Control1 byte    // control bits
-	Control2 byte    // control bits
-	NumRAM   byte    // PRG-RAM size (x 8KB)
+	NumPRG, NumCHR, Control1, Control2, NumRAM byte    // number of PRG-ROM banks (16KB each), number of CHR-ROM banks (8KB each), control bits, control bits, PRG-RAM size (x 8KB)
 	_        [7]byte // unused padding
 }
 
