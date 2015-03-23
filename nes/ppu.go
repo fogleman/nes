@@ -68,9 +68,6 @@ type PPU struct {
 	// $2003 OAMADDR
 	oamAddress byte
 
-	// $2005 PPUSCROLL
-	scroll uint16 // x & y scrolling coordinates
-
 	// $2007 PPUDATA
 	bufferedData byte // for buffered reads
 }
@@ -201,8 +198,6 @@ func (ppu *PPU) writeOAMData(value byte) {
 
 // $2005: PPUSCROLL
 func (ppu *PPU) writeScroll(value byte) {
-	ppu.scroll <<= 8
-	ppu.scroll |= uint16(value)
 	if ppu.w == 0 {
 		// t: ........ ...HGFED = d: HGFED...
 		// x:               CBA = d: .....CBA
@@ -410,7 +405,7 @@ func (ppu *PPU) spritePixel() (byte, byte) {
 		return 0, 0
 	}
 	for i := 0; i < ppu.spriteCount; i++ {
-		offset := ppu.Cycle - int(ppu.spritePositions[i])
+		offset := (ppu.Cycle - 1) - int(ppu.spritePositions[i])
 		if offset < 0 || offset > 7 {
 			continue
 		}
@@ -586,6 +581,7 @@ func (ppu *PPU) Step() {
 				ppu.fetchLowTileByte()
 			case 7:
 				ppu.fetchHighTileByte()
+			case 0:
 				ppu.storeTileData()
 			}
 		}
