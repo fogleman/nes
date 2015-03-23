@@ -39,29 +39,21 @@ func init() {
 // APU
 
 type APU struct {
-	console        *Console
-	channel        chan float32
-	pulse1         Pulse
-	pulse2         Pulse
-	triangle       Triangle
-	noise          Noise
-	cycle          uint64
-	framePeriod    byte
-	frameValue     byte
-	frameIRQ       bool
-	enablePulse1   bool
-	enablePulse2   bool
-	enableTriangle bool
-	enableNoise    bool
+	console     *Console
+	channel     chan float32
+	pulse1      Pulse
+	pulse2      Pulse
+	triangle    Triangle
+	noise       Noise
+	cycle       uint64
+	framePeriod byte
+	frameValue  byte
+	frameIRQ    bool
 }
 
 func NewAPU(console *Console) *APU {
 	apu := APU{}
 	apu.console = console
-	apu.enablePulse1 = true
-	apu.enablePulse2 = true
-	apu.enableTriangle = true
-	apu.enableNoise = true
 	apu.noise.shiftRegister = 1
 	apu.pulse1.channel = 1
 	apu.pulse2.channel = 2
@@ -93,19 +85,11 @@ func (apu *APU) sendSample() {
 }
 
 func (apu *APU) output() float32 {
-	var p1, p2, t, n, d byte
-	if apu.enablePulse1 {
-		p1 = apu.pulse1.output()
-	}
-	if apu.enablePulse2 {
-		p2 = apu.pulse2.output()
-	}
-	if apu.enableTriangle {
-		t = apu.triangle.output()
-	}
-	if apu.enableNoise {
-		n = apu.noise.output()
-	}
+	p1 := apu.pulse1.output()
+	p2 := apu.pulse2.output()
+	t := apu.triangle.output()
+	n := apu.noise.output()
+	d := byte(0)
 	pulseOut := pulseTable[p1+p2]
 	tndOut := tndTable[3*t+2*n+d]
 	return pulseOut + tndOut
@@ -249,20 +233,20 @@ func (apu *APU) readStatus() byte {
 }
 
 func (apu *APU) writeControl(value byte) {
-	apu.enablePulse1 = value&1 == 1
-	apu.enablePulse2 = value&2 == 2
-	apu.enableTriangle = value&4 == 4
-	apu.enableNoise = value&8 == 8
-	if !apu.enablePulse1 {
+	apu.pulse1.enabled = value&1 == 1
+	apu.pulse2.enabled = value&2 == 2
+	apu.triangle.enabled = value&4 == 4
+	apu.noise.enabled = value&8 == 8
+	if !apu.pulse1.enabled {
 		apu.pulse1.lengthValue = 0
 	}
-	if !apu.enablePulse2 {
+	if !apu.pulse2.enabled {
 		apu.pulse2.lengthValue = 0
 	}
-	if !apu.enableTriangle {
+	if !apu.triangle.enabled {
 		apu.triangle.lengthValue = 0
 	}
-	if !apu.enableNoise {
+	if !apu.noise.enabled {
 		apu.noise.lengthValue = 0
 	}
 }
@@ -281,6 +265,7 @@ func (apu *APU) writeFrameCounter(value byte) {
 // Pulse
 
 type Pulse struct {
+	enabled         bool
 	channel         byte
 	lengthEnabled   bool
 	lengthValue     byte
@@ -394,6 +379,9 @@ func (p *Pulse) sweep() {
 }
 
 func (p *Pulse) output() byte {
+	if !p.enabled {
+		return 0
+	}
 	if p.lengthValue == 0 {
 		return 0
 	}
@@ -416,6 +404,7 @@ func (p *Pulse) output() byte {
 // Triangle
 
 type Triangle struct {
+	enabled       bool
 	lengthEnabled bool
 	lengthValue   byte
 	timerPeriod   uint16
@@ -471,6 +460,9 @@ func (t *Triangle) stepCounter() {
 }
 
 func (t *Triangle) output() byte {
+	if !t.enabled {
+		return 0
+	}
 	if t.lengthValue == 0 {
 		return 0
 	}
@@ -483,6 +475,7 @@ func (t *Triangle) output() byte {
 // Noise
 
 type Noise struct {
+	enabled         bool
 	mode            bool
 	shiftRegister   uint16
 	lengthEnabled   bool
@@ -559,6 +552,9 @@ func (n *Noise) stepLength() {
 }
 
 func (n *Noise) output() byte {
+	if !n.enabled {
+		return 0
+	}
 	if n.lengthValue == 0 {
 		return 0
 	}
