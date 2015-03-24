@@ -9,10 +9,9 @@ type PPU struct {
 	Memory           // memory interface
 	console *Console // reference to parent object
 
-	Cycle         int    // 0-340
-	ScanLine      int    // 0-261, 0-239=visible, 240=post, 241-260=vblank, 261=pre
-	Frame         uint64 // frame counter
-	VerticalBlank byte   // vertical blank status
+	Cycle    int    // 0-340
+	ScanLine int    // 0-261, 0-239=visible, 240=post, 241-260=vblank, 261=pre
+	Frame    uint64 // frame counter
 
 	// storage variables
 	paletteData   [32]byte
@@ -27,6 +26,14 @@ type PPU struct {
 	x byte   // fine x scroll (3 bit)
 	w byte   // write toggle (1 bit)
 	f byte   // even/odd frame flag (1 bit)
+
+	register byte
+
+	// NMI flags
+	nmiOccurred bool
+	nmiOutput   bool
+	nmiPrevious bool
+	nmiDelay    byte
 
 	// background temporary variables
 	nameTableByte      byte
@@ -49,7 +56,6 @@ type PPU struct {
 	flagBackgroundTable byte // 0: $0000; 1: $1000
 	flagSpriteSize      byte // 0: 8x8; 1: 8x16
 	flagMasterSlave     byte // 0: read EXT; 1: write EXT
-	flagGenerateNMI     byte // 0: off; 1: on
 
 	// $2001 PPUMASK
 	flagGrayscale          byte // 0: color; 1: grayscale
@@ -84,7 +90,6 @@ func (ppu *PPU) Reset() {
 	ppu.Cycle = 340
 	ppu.ScanLine = 240
 	ppu.Frame = 0
-	ppu.VerticalBlank = 0
 	ppu.writeControl(0)
 	ppu.writeMask(0)
 	ppu.writeOAMAddress(0)
@@ -119,6 +124,7 @@ func (ppu *PPU) readRegister(address uint16) byte {
 }
 
 func (ppu *PPU) writeRegister(address uint16, value byte) {
+	ppu.register = value
 	switch address {
 	case 0x2000:
 		ppu.writeControl(value)
@@ -151,7 +157,8 @@ func (ppu *PPU) writeControl(value byte) {
 	ppu.flagBackgroundTable = (value >> 4) & 1
 	ppu.flagSpriteSize = (value >> 5) & 1
 	ppu.flagMasterSlave = (value >> 6) & 1
-	ppu.flagGenerateNMI = (value >> 7) & 1
+	ppu.nmiOutput = (value>>7)&1 == 1
+	ppu.nmiChange()
 	// t: ....BA.. ........ = d: ......BA
 	ppu.t = (ppu.t & 0xF3FF) | ((uint16(value) & 0x03) << 10)
 }
@@ -170,11 +177,14 @@ func (ppu *PPU) writeMask(value byte) {
 
 // $2002: PPUSTATUS
 func (ppu *PPU) readStatus() byte {
-	var result byte
+	result := ppu.register & 0x1F
 	result |= ppu.flagSpriteOverflow << 5
 	result |= ppu.flagSpriteZeroHit << 6
-	result |= ppu.VerticalBlank << 7
-	ppu.VerticalBlank = 0
+	if ppu.nmiOccurred {
+		result |= 1 << 7
+	}
+	ppu.nmiOccurred = false
+	ppu.nmiChange()
 	// w:                   = 0
 	ppu.w = 0
 	return result
@@ -333,16 +343,24 @@ func (ppu *PPU) copyY() {
 	ppu.v = (ppu.v & 0x841F) | (ppu.t & 0x7BE0)
 }
 
+func (ppu *PPU) nmiChange() {
+	nmi := ppu.nmiOutput && ppu.nmiOccurred
+	if nmi && !ppu.nmiPrevious {
+		ppu.nmiDelay = 20
+		// ppu.console.CPU.triggerNMI()
+	}
+	ppu.nmiPrevious = nmi
+}
+
 func (ppu *PPU) setVerticalBlank() {
 	ppu.front, ppu.back = ppu.back, ppu.front
-	ppu.VerticalBlank = 1
-	if ppu.flagGenerateNMI != 0 {
-		ppu.console.CPU.triggerNMI()
-	}
+	ppu.nmiOccurred = true
+	ppu.nmiChange()
 }
 
 func (ppu *PPU) clearVerticalBlank() {
-	ppu.VerticalBlank = 0
+	ppu.nmiOccurred = false
+	ppu.nmiChange()
 }
 
 func (ppu *PPU) fetchNameTableByte() {
@@ -531,6 +549,13 @@ func (ppu *PPU) evaluateSprites() {
 
 // tick updates Cycle, ScanLine and Frame counters
 func (ppu *PPU) tick() {
+	if ppu.nmiDelay > 0 {
+		ppu.nmiDelay--
+		if ppu.nmiDelay == 0 && ppu.nmiOutput && ppu.nmiOccurred {
+			ppu.console.CPU.triggerNMI()
+		}
+	}
+
 	if ppu.flagShowBackground != 0 || ppu.flagShowSprites != 0 {
 		if ppu.f == 1 && ppu.ScanLine == 261 && ppu.Cycle == 339 {
 			ppu.Cycle = 0
