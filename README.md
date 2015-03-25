@@ -63,3 +63,12 @@ mappers soon. To see what games should work, consult this list:
 * the APU DMC channel is not yet implemented
 * there are some minor issues with PPU timing, but most games work OK anyway
 * some games just show a black screen, not sure why yet
+
+### Documentation
+
+Interested in writing your own emulator? Curious about the NES internals? Here
+are some good resources:
+
+* [NES Documentation (PDF)](http://nesdev.com/NESDoc.pdf)
+* [NES Reference Guide (Wiki)](http://wiki.nesdev.com/w/index.php/NES_reference_guide)
+* [6502 CPU Reference](http://www.obelisk.demon.co.uk/6502/)
