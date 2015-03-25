@@ -76,10 +76,10 @@ func readKey(window *glfw.Window, key glfw.Key) bool {
 	return window.GetKey(key) == glfw.Press
 }
 
-func readKeys(window *glfw.Window) [8]bool {
+func readKeys(window *glfw.Window, turbo bool) [8]bool {
 	var result [8]bool
-	result[nes.ButtonA] = readKey(window, glfw.KeyZ)
-	result[nes.ButtonB] = readKey(window, glfw.KeyX)
+	result[nes.ButtonA] = readKey(window, glfw.KeyZ) || (turbo && readKey(window, glfw.KeyA))
+	result[nes.ButtonB] = readKey(window, glfw.KeyX) || (turbo && readKey(window, glfw.KeyS))
 	result[nes.ButtonSelect] = readKey(window, glfw.KeyRightShift)
 	result[nes.ButtonStart] = readKey(window, glfw.KeyEnter)
 	result[nes.ButtonUp] = readKey(window, glfw.KeyUp)
@@ -96,8 +96,8 @@ func readJoystick(joy glfw.Joystick, turbo bool) [8]bool {
 	}
 	axes := glfw.GetJoystickAxes(joy)
 	buttons := glfw.GetJoystickButtons(joy)
-	result[nes.ButtonA] = buttons[0] == 1 || (buttons[2] == 1 && turbo)
-	result[nes.ButtonB] = buttons[1] == 1 || (buttons[3] == 1 && turbo)
+	result[nes.ButtonA] = buttons[0] == 1 || (turbo && buttons[2] == 1)
+	result[nes.ButtonB] = buttons[1] == 1 || (turbo && buttons[3] == 1)
 	result[nes.ButtonSelect] = buttons[6] == 1
 	result[nes.ButtonStart] = buttons[7] == 1
 	result[nes.ButtonUp] = axes[1] < -0.5
@@ -116,9 +116,8 @@ func combineButtons(a, b [8]bool) [8]bool {
 }
 
 func updateControllers(window *glfw.Window, console *nes.Console) {
-	// Turbo button flips every 3 frames.
-	turbo := console.PPU.Frame%6 >= 3
-	k1 := readKeys(window)
+	turbo := console.PPU.Frame%6 < 3
+	k1 := readKeys(window, turbo)
 	j1 := readJoystick(glfw.Joystick1, turbo)
 	j2 := readJoystick(glfw.Joystick2, turbo)
 	console.SetButtons1(combineButtons(k1, j1))
