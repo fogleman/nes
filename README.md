@@ -38,6 +38,8 @@ Keyboard controls are indicated below.
 | Select                | Right Shift |
 | A                     | Z           |
 | B                     | X           |
+| A (Turbo)             | A           |
+| B (Turbo)             | S           |
 
 ### Mappers
 
