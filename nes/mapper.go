@@ -17,6 +17,8 @@ func NewMapper(console *Console) Mapper {
 		return NewMapper1(cartridge)
 	case 2:
 		return NewMapper2(cartridge)
+	case 3:
+		return NewMapper3(cartridge)
 	case 4:
 		return NewMapper4(console, cartridge)
 	default:
