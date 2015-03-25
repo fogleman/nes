@@ -21,6 +21,8 @@ func NewMapper(console *Console) Mapper {
 		return NewMapper3(cartridge)
 	case 4:
 		return NewMapper4(console, cartridge)
+	case 7:
+		return NewMapper7(cartridge)
 	default:
 		log.Fatalf("unsupported mapper: %d", cartridge.Mapper)
 	}
