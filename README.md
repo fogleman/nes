@@ -51,8 +51,9 @@ The following mappers have been implemented:
 * UNROM (2)
 * CNROM (3)
 * MMC3 (4)
+* AOROM (7)
 
-These mappers cover about 75% of all NES games. I hope to implement more
+These mappers cover about 85% of all NES games. I hope to implement more
 mappers soon. To see what games should work, consult this list:
 
 [NES Mapper List](http://tuxnes.sourceforge.net/nesmapper.txt)
