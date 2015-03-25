@@ -1,9 +1,6 @@
 package nes
 
-import (
-	"image"
-	"log"
-)
+import "image"
 
 type PPU struct {
 	Memory           // memory interface
@@ -117,8 +114,6 @@ func (ppu *PPU) readRegister(address uint16) byte {
 		return ppu.readOAMData()
 	case 0x2007:
 		return ppu.readData()
-	default:
-		log.Fatalf("unhandled ppu register read at address: 0x%04X", address)
 	}
 	return 0
 }
@@ -130,8 +125,6 @@ func (ppu *PPU) writeRegister(address uint16, value byte) {
 		ppu.writeControl(value)
 	case 0x2001:
 		ppu.writeMask(value)
-	case 0x2002:
-		// no-op
 	case 0x2003:
 		ppu.writeOAMAddress(value)
 	case 0x2004:
@@ -144,8 +137,6 @@ func (ppu *PPU) writeRegister(address uint16, value byte) {
 		ppu.writeData(value)
 	case 0x4014:
 		ppu.writeDMA(value)
-	default:
-		log.Fatalf("unhandled ppu register write at address: 0x%04X", address)
 	}
 }
 
@@ -346,8 +337,9 @@ func (ppu *PPU) copyY() {
 func (ppu *PPU) nmiChange() {
 	nmi := ppu.nmiOutput && ppu.nmiOccurred
 	if nmi && !ppu.nmiPrevious {
+		// TODO: this fixes some games but the delay shouldn't have to be so
+		// long, so the timings are off somewhere
 		ppu.nmiDelay = 20
-		// ppu.console.CPU.triggerNMI()
 	}
 	ppu.nmiPrevious = nmi
 }
