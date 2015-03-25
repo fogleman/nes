@@ -40,6 +40,7 @@ Keyboard controls are indicated below.
 | B                     | X           |
 | A (Turbo)             | A           |
 | B (Turbo)             | S           |
+| Reset                 | R           |
 
 ### Mappers
 

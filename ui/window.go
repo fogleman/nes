@@ -159,6 +159,9 @@ func Run(console *nes.Console) {
 	defer audio.Stop()
 
 	for !window.ShouldClose() {
+		if readKey(window, glfw.KeyR) {
+			console.CPU.Reset()
+		}
 		now := glfw.GetTime()
 		elapsed := now - timestamp
 		timestamp = now
