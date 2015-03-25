@@ -49,6 +49,7 @@ The following mappers have been implemented:
 * NROM (0)
 * MMC1 (1)
 * UNROM (2)
+* CNROM (3)
 * MMC3 (4)
 
 These mappers cover about 75% of all NES games. I hope to implement more
