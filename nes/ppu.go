@@ -434,12 +434,12 @@ func (ppu *PPU) renderPixel() {
 	y := ppu.ScanLine
 	background := ppu.backgroundPixel()
 	i, sprite := ppu.spritePixel()
-	// if x < 8 && ppu.flagShowLeftBackground == 0 {
-	// 	background = 0
-	// }
-	// if x < 8 && ppu.flagShowLeftSprites == 0 {
-	// 	sprite = 0
-	// }
+	if x < 8 && ppu.flagShowLeftBackground == 0 {
+		background = 0
+	}
+	if x < 8 && ppu.flagShowLeftSprites == 0 {
+		sprite = 0
+	}
 	b := background%4 != 0
 	s := sprite%4 != 0
 	var color byte
@@ -450,7 +450,7 @@ func (ppu *PPU) renderPixel() {
 	} else if b && !s {
 		color = background
 	} else {
-		if ppu.spriteIndexes[i] == 0 {
+		if ppu.spriteIndexes[i] == 0 && x > 0 && x < 255 {
 			ppu.flagSpriteZeroHit = 1
 		}
 		if ppu.spritePriorities[i] == 0 {
