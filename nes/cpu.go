@@ -437,12 +437,12 @@ func (cpu *CPU) Step() int {
 		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
 	}
 
-	info := &stepInfo{address, cpu.PC, mode}
 	cpu.PC += uint16(instructionSizes[opcode])
 	cpu.Cycles += uint64(instructionCycles[opcode])
 	if pageCrossed {
 		cpu.Cycles += uint64(instructionPageCycles[opcode])
 	}
+	info := &stepInfo{address, cpu.PC, mode}
 	cpu.table[opcode](info)
 
 	return int(cpu.Cycles - cycles)
