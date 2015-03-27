@@ -60,9 +60,8 @@ mappers soon. To see what games should work, consult this list:
 
 ### Known Issues
 
-* the APU DMC channel is not yet implemented
 * there are some minor issues with PPU timing, but most games work OK anyway
-* some games just show a black screen, not sure why yet
+* the APU emulation isn't quite perfect, but not far off
 
 ### Documentation
 

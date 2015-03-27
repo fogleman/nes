@@ -24,6 +24,10 @@ var noiseTable = []uint16{
 	4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
 }
 
+var dmcTable = []byte{
+	214, 190, 170, 160, 143, 127, 113, 107, 95, 80, 71, 64, 53, 42, 36, 27,
+}
+
 var pulseTable [31]float32
 var tndTable [203]float32
 
@@ -45,6 +49,7 @@ type APU struct {
 	pulse2      Pulse
 	triangle    Triangle
 	noise       Noise
+	dmc         DMC
 	cycle       uint64
 	framePeriod byte
 	frameValue  byte
@@ -57,6 +62,7 @@ func NewAPU(console *Console) *APU {
 	apu.noise.shiftRegister = 1
 	apu.pulse1.channel = 1
 	apu.pulse2.channel = 2
+	apu.dmc.cpu = console.CPU
 	return &apu
 }
 
@@ -89,7 +95,7 @@ func (apu *APU) output() float32 {
 	p2 := apu.pulse2.output()
 	t := apu.triangle.output()
 	n := apu.noise.output()
-	d := byte(0)
+	d := apu.dmc.output()
 	pulseOut := pulseTable[p1+p2]
 	tndOut := tndTable[3*t+2*n+d]
 	return pulseOut + tndOut
@@ -135,6 +141,7 @@ func (apu *APU) stepTimer() {
 		apu.pulse1.stepTimer()
 		apu.pulse2.stepTimer()
 		apu.noise.stepTimer()
+		apu.dmc.stepTimer()
 	}
 	apu.triangle.stepTimer()
 }
@@ -195,6 +202,14 @@ func (apu *APU) writeRegister(address uint16, value byte) {
 	case 0x4008:
 		apu.triangle.writeControl(value)
 	case 0x4009:
+	case 0x4010:
+		apu.dmc.writeControl(value)
+	case 0x4011:
+		apu.dmc.writeValue(value)
+	case 0x4012:
+		apu.dmc.writeAddress(value)
+	case 0x4013:
+		apu.dmc.writeLength(value)
 	case 0x400A:
 		apu.triangle.writeTimerLow(value)
 	case 0x400B:
@@ -229,6 +244,9 @@ func (apu *APU) readStatus() byte {
 	if apu.noise.lengthValue > 0 {
 		result |= 8
 	}
+	if apu.dmc.currentLength > 0 {
+		result |= 16
+	}
 	return result
 }
 
@@ -237,6 +255,7 @@ func (apu *APU) writeControl(value byte) {
 	apu.pulse2.enabled = value&2 == 2
 	apu.triangle.enabled = value&4 == 4
 	apu.noise.enabled = value&8 == 8
+	apu.dmc.enabled = value&16 == 16
 	if !apu.pulse1.enabled {
 		apu.pulse1.lengthValue = 0
 	}
@@ -248,6 +267,13 @@ func (apu *APU) writeControl(value byte) {
 	}
 	if !apu.noise.enabled {
 		apu.noise.lengthValue = 0
+	}
+	if !apu.dmc.enabled {
+		apu.dmc.currentLength = 0
+	} else {
+		if apu.dmc.currentLength == 0 {
+			apu.dmc.restart()
+		}
 	}
 }
 
@@ -566,4 +592,94 @@ func (n *Noise) output() byte {
 	} else {
 		return n.constantVolume
 	}
+}
+
+// DMC
+
+type DMC struct {
+	cpu            *CPU
+	enabled        bool
+	value          byte
+	sampleAddress  uint16
+	sampleLength   uint16
+	currentAddress uint16
+	currentLength  uint16
+	shiftRegister  byte
+	bitCount       byte
+	tickPeriod     byte
+	tickValue      byte
+	loop           bool
+	irq            bool
+}
+
+func (d *DMC) writeControl(value byte) {
+	d.irq = value&0x80 == 0x80
+	d.loop = value&0x40 == 0x40
+	d.tickPeriod = dmcTable[value&0x0F]
+}
+
+func (d *DMC) writeValue(value byte) {
+	d.value = value & 0x7F
+}
+
+func (d *DMC) writeAddress(value byte) {
+	// Sample address = %11AAAAAA.AA000000
+	d.sampleAddress = 0xC000 | (uint16(value) << 6)
+}
+
+func (d *DMC) writeLength(value byte) {
+	// Sample length = %0000LLLL.LLLL0001
+	d.sampleLength = (uint16(value) << 4) | 1
+}
+
+func (d *DMC) restart() {
+	d.currentAddress = d.sampleAddress
+	d.currentLength = d.sampleLength
+}
+
+func (d *DMC) stepTimer() {
+	if !d.enabled {
+		return
+	}
+	d.stepReader()
+	if d.tickValue == 0 {
+		d.tickValue = d.tickPeriod
+		d.stepShifter()
+	} else {
+		d.tickValue--
+	}
+}
+
+func (d *DMC) stepReader() {
+	if d.currentLength > 0 && d.bitCount == 0 {
+		d.cpu.stall += 4
+		d.shiftRegister = d.cpu.Read(d.currentAddress)
+		d.bitCount = 8
+		d.currentAddress++
+		if d.currentAddress == 0 {
+			d.currentAddress = 0x8000
+		}
+		d.currentLength--
+		if d.currentLength == 0 && d.loop {
+			d.restart()
+		}
+	}
+}
+
+func (d *DMC) stepShifter() {
+	if d.shiftRegister&1 == 1 {
+		if d.value <= 125 {
+			d.value += 2
+		}
+	} else {
+		if d.value >= 2 {
+			d.value -= 2
+		}
+	}
+	d.shiftRegister >>= 1
+	d.bitCount--
+}
+
+func (d *DMC) output() byte {
+	return d.value
 }
