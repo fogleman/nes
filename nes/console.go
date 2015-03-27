@@ -57,10 +57,18 @@ func (console *Console) StepFrame() int {
 
 func (console *Console) StepSeconds(seconds float64) {
 	cycles := int(CPUFrequency * seconds)
-	// cycles -= console.StepFrame()
 	for cycles > 0 {
 		cycles -= console.Step()
 	}
+}
+
+func (console *Console) StepFrameOrSeconds(seconds float64, less int) int {
+	cycles := int(CPUFrequency*seconds) - less
+	cycles -= console.StepFrame()
+	for cycles > 0 {
+		cycles -= console.Step()
+	}
+	return -cycles
 }
 
 func (console *Console) Buffer() *image.RGBA {
