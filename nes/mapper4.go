@@ -149,6 +149,7 @@ func (m *Mapper4) prgBankOffset(index int) int {
 	if index >= 0x80 {
 		index -= 0x100
 	}
+	index %= len(m.PRG) / 0x2000
 	offset := index * 0x2000
 	if offset < 0 {
 		offset += len(m.PRG)
@@ -160,6 +161,7 @@ func (m *Mapper4) chrBankOffset(index int) int {
 	if index >= 0x80 {
 		index -= 0x100
 	}
+	index %= len(m.CHR) / 0x0400
 	offset := index * 0x0400
 	if offset < 0 {
 		offset += len(m.CHR)
