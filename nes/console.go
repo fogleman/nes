@@ -26,7 +26,11 @@ func NewConsole(path string) (*Console, error) {
 	controller2 := NewController()
 	console := Console{
 		nil, nil, nil, cartridge, controller1, controller2, nil, ram}
-	console.Mapper = NewMapper(&console)
+	mapper, err := NewMapper(&console)
+	if err != nil {
+		return nil, err
+	}
+	console.Mapper = mapper
 	console.CPU = NewCPU(&console)
 	console.APU = NewAPU(&console)
 	console.PPU = NewPPU(&console)
