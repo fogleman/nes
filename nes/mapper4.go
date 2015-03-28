@@ -27,7 +27,9 @@ func NewMapper4(console *Console, cartridge *Cartridge) Mapper {
 
 func (m *Mapper4) Step() {
 	ppu := m.console.PPU
-	if ppu.Cycle != 260 {
+	if ppu.Cycle != 270 {
+		// TODO: this should be 260, not 270, but 270 is currently working
+		// better for most games
 		return
 	}
 	if ppu.ScanLine > 239 && ppu.ScanLine < 261 {
