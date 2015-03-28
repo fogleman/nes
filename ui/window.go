@@ -158,7 +158,6 @@ func Run(console *nes.Console) {
 	}
 	defer audio.Stop()
 
-	extra := 0
 	for !window.ShouldClose() {
 		if readKey(window, glfw.KeyEscape) {
 			break
@@ -170,7 +169,7 @@ func Run(console *nes.Console) {
 		now := glfw.GetTime()
 		elapsed := now - timestamp
 		timestamp = now
-		extra = console.StepFrameOrSeconds(elapsed, extra)
+		console.StepSeconds(elapsed)
 		setTexture(texture, console.Buffer())
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		drawQuad(window)
