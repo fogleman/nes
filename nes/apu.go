@@ -667,6 +667,9 @@ func (d *DMC) stepReader() {
 }
 
 func (d *DMC) stepShifter() {
+	if d.bitCount == 0 {
+		return
+	}
 	if d.shiftRegister&1 == 1 {
 		if d.value <= 125 {
 			d.value += 2
