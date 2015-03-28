@@ -126,6 +126,10 @@ func (m *Mapper1) writePRGBank(value byte) {
 }
 
 func (m *Mapper1) prgBankOffset(index int) int {
+	if index >= 0x80 {
+		index -= 0x100
+	}
+	index %= len(m.PRG) / 0x4000
 	offset := index * 0x4000
 	if offset < 0 {
 		offset += len(m.PRG)
@@ -134,6 +138,10 @@ func (m *Mapper1) prgBankOffset(index int) int {
 }
 
 func (m *Mapper1) chrBankOffset(index int) int {
+	if index >= 0x80 {
+		index -= 0x100
+	}
+	index %= len(m.CHR) / 0x1000
 	offset := index * 0x1000
 	if offset < 0 {
 		offset += len(m.CHR)
