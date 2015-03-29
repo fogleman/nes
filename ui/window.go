@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"log"
 	"runtime"
 
 	"code.google.com/p/portaudio-go/portaudio"
@@ -16,7 +17,6 @@ const (
 	height  = 240
 	scale   = 3
 	padding = 0
-	title   = "NES"
 )
 
 func init() {
@@ -124,26 +124,30 @@ func updateControllers(window *glfw.Window, console *nes.Console) {
 	console.SetButtons2(j2)
 }
 
-func Run(console *nes.Console) {
+func Run(path string) {
+	console, err := nes.NewConsole(path)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	portaudio.Initialize()
 	defer portaudio.Terminate()
 
-	err := glfw.Init()
-	if err != nil {
-		panic(err)
+	if err := glfw.Init(); err != nil {
+		log.Fatalln(err)
 	}
 	defer glfw.Terminate()
 
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
+	window, err := glfw.CreateWindow(width*scale, height*scale, path, nil, nil)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	window.MakeContextCurrent()
 	if err := gl.Init(); err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	gl.Enable(gl.TEXTURE_2D)
@@ -154,7 +158,7 @@ func Run(console *nes.Console) {
 	audio := NewAudio()
 	console.SetAudioChannel(audio.channel)
 	if err := audio.Start(); err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer audio.Stop()
 
