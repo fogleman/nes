@@ -2,29 +2,46 @@ package ui
 
 import (
 	"image"
-	"log"
-	"runtime"
-
-	"code.google.com/p/portaudio-go/portaudio"
 
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
-const (
-	width   = 256
-	height  = 240
-	scale   = 3
-	padding = 0
-)
+type GameView struct {
+	director *Director
+	console  *nes.Console
+	texture  uint32
+}
 
-func init() {
-	// we need a parallel OS thread to avoid audio stuttering
-	runtime.GOMAXPROCS(2)
+func NewGameView(director *Director, console *nes.Console) View {
+	texture := createTexture()
+	return &GameView{director, console, texture}
+}
 
-	// we need to keep OpenGL calls on a single thread
-	runtime.LockOSThread()
+func (view *GameView) Enter() {
+}
+
+func (view *GameView) Exit() {
+}
+
+func (view *GameView) Update(t, dt float64) {
+	window := view.director.window
+	console := view.console
+	if readKey(window, glfw.KeyEscape) {
+		window.SetShouldClose(true)
+	}
+	if readKey(window, glfw.KeyR) {
+		console.Reset()
+	}
+	updateControllers(window, console)
+	console.StepSeconds(dt)
+	setTexture(view.texture, console.Buffer())
+}
+
+func (view *GameView) Draw() {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	drawQuad(view.director.window)
 }
 
 func createTexture() uint32 {
@@ -122,62 +139,4 @@ func updateControllers(window *glfw.Window, console *nes.Console) {
 	j2 := readJoystick(glfw.Joystick2, turbo)
 	console.SetButtons1(combineButtons(k1, j1))
 	console.SetButtons2(j2)
-}
-
-func Run(path string) {
-	console, err := nes.NewConsole(path)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	portaudio.Initialize()
-	defer portaudio.Terminate()
-
-	if err := glfw.Init(); err != nil {
-		log.Fatalln(err)
-	}
-	defer glfw.Terminate()
-
-	glfw.WindowHint(glfw.ContextVersionMajor, 2)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	window, err := glfw.CreateWindow(width*scale, height*scale, path, nil, nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	window.MakeContextCurrent()
-	if err := gl.Init(); err != nil {
-		log.Fatalln(err)
-	}
-
-	gl.Enable(gl.TEXTURE_2D)
-	texture := createTexture()
-
-	timestamp := glfw.GetTime()
-
-	audio := NewAudio()
-	console.SetAudioChannel(audio.channel)
-	if err := audio.Start(); err != nil {
-		log.Fatalln(err)
-	}
-	defer audio.Stop()
-
-	for !window.ShouldClose() {
-		if readKey(window, glfw.KeyEscape) {
-			break
-		}
-		if readKey(window, glfw.KeyR) {
-			console.CPU.Reset()
-		}
-		updateControllers(window, console)
-		now := glfw.GetTime()
-		elapsed := now - timestamp
-		timestamp = now
-		console.StepSeconds(elapsed)
-		setTexture(texture, console.Buffer())
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-		drawQuad(window)
-		window.SwapBuffers()
-		glfw.PollEvents()
-	}
 }

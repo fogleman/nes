@@ -37,6 +37,10 @@ func NewConsole(path string) (*Console, error) {
 	return &console, nil
 }
 
+func (console *Console) Reset() {
+	console.CPU.Reset()
+}
+
 func (console *Console) Step() int {
 	cpuCycles := console.CPU.Step()
 	ppuCycles := cpuCycles * 3
