@@ -11,11 +11,10 @@ import (
 )
 
 const (
-	width   = 256
-	height  = 240
-	scale   = 3
-	padding = 0
-	title   = "NES"
+	width  = 256
+	height = 240
+	scale  = 3
+	title  = "NES"
 )
 
 func init() {

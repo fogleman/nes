@@ -8,6 +8,8 @@ import (
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
+const padding = 0
+
 type GameView struct {
 	director *Director
 	console  *nes.Console
