@@ -29,7 +29,7 @@ func (view *GameView) Exit() {
 	view.console.SetAudioChannel(nil)
 }
 
-func (view *GameView) Update(t, dt float64) {
+func (view *GameView) Update(dt float64) {
 	window := view.director.window
 	console := view.console
 	if readKey(window, glfw.KeyEscape) {
@@ -41,10 +41,6 @@ func (view *GameView) Update(t, dt float64) {
 	updateControllers(window, console)
 	console.StepSeconds(dt)
 	setTexture(view.texture, console.Buffer())
-}
-
-func (view *GameView) Draw() {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
 	drawQuad(view.director.window)
 }
 

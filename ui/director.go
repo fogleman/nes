@@ -4,14 +4,14 @@ import (
 	"log"
 
 	"github.com/fogleman/nes/nes"
+	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
 type View interface {
 	Enter()
 	Exit()
-	Update(t, dt float64)
-	Draw()
+	Update(dt float64)
 }
 
 type Director struct {
@@ -44,11 +44,13 @@ func (d *Director) SetView(view View) {
 }
 
 func (d *Director) Step() {
-	now := glfw.GetTime()
-	elapsed := now - d.timestamp
-	d.timestamp = now
-	d.view.Update(d.timestamp, elapsed)
-	d.view.Draw()
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	timestamp := glfw.GetTime()
+	dt := timestamp - d.timestamp
+	d.timestamp = timestamp
+	if d.view != nil {
+		d.view.Update(dt)
+	}
 }
 
 func (d *Director) Run() {
