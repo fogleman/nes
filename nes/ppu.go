@@ -339,7 +339,7 @@ func (ppu *PPU) nmiChange() {
 	if nmi && !ppu.nmiPrevious {
 		// TODO: this fixes some games but the delay shouldn't have to be so
 		// long, so the timings are off somewhere
-		ppu.nmiDelay = 20
+		ppu.nmiDelay = 15
 	}
 	ppu.nmiPrevious = nmi
 }
