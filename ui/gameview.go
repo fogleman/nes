@@ -20,9 +20,11 @@ func NewGameView(director *Director, console *nes.Console) View {
 }
 
 func (view *GameView) Enter() {
+	view.console.SetAudioChannel(view.director.audio.channel)
 }
 
 func (view *GameView) Exit() {
+	view.console.SetAudioChannel(nil)
 }
 
 func (view *GameView) Update(t, dt float64) {
