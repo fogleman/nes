@@ -15,6 +15,7 @@ const (
 	height  = 240
 	scale   = 3
 	padding = 0
+	title   = "NES"
 )
 
 func init() {
@@ -45,7 +46,7 @@ func Run(path string) {
 	// create window
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	window, err := glfw.CreateWindow(width*scale, height*scale, path, nil, nil)
+	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}

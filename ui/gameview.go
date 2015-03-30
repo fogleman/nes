@@ -11,15 +11,17 @@ import (
 type GameView struct {
 	director *Director
 	console  *nes.Console
+	title    string
 	texture  uint32
 }
 
-func NewGameView(director *Director, console *nes.Console) View {
+func NewGameView(director *Director, console *nes.Console, title string) View {
 	texture := createTexture()
-	return &GameView{director, console, texture}
+	return &GameView{director, console, title, texture}
 }
 
 func (view *GameView) Enter() {
+	view.director.SetTitle(view.title)
 	view.console.SetAudioChannel(view.director.audio.channel)
 }
 

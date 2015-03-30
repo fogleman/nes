@@ -64,5 +64,5 @@ func (d *Director) PlayROM(path string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	d.SetView(NewGameView(d, console))
+	d.SetView(NewGameView(d, console, path))
 }
