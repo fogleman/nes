@@ -22,7 +22,7 @@ func init() {
 }
 
 func EnsureThumbnail(path string) {
-	hash, err := HashFile(path)
+	hash, err := hashFile(path)
 	if err != nil {
 		log.Fatalln(err)
 	}

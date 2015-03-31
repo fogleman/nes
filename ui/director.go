@@ -22,6 +22,7 @@ type Director struct {
 	window    *glfw.Window
 	audio     *Audio
 	view      View
+	menuView  View
 	timestamp float64
 }
 
@@ -29,6 +30,7 @@ func NewDirector(window *glfw.Window, audio *Audio) *Director {
 	director := Director{}
 	director.window = window
 	director.audio = audio
+	director.menuView = NewMenuView(&director, getPaths(os.Args[1]))
 	return &director
 }
 
@@ -74,7 +76,7 @@ func (d *Director) PlayGame(path string) {
 }
 
 func (d *Director) ShowMenu() {
-	d.SetView(NewMenuView(d, getPaths(os.Args[1])))
+	d.SetView(d.menuView)
 }
 
 func getPaths(arg string) []string {
