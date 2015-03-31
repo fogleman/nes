@@ -33,18 +33,7 @@ func init() {
 func CreateGenericThumbnail(text string) image.Image {
 	im := image.NewRGBA(image.Rect(0, 0, 256, 240))
 	draw.Draw(im, im.Rect, &image.Uniform{color.Black}, image.ZP, draw.Src)
-	for x := 0; x < 256; x++ {
-		for i := 0; i < 4; i++ {
-			im.Set(x, i, color.White)
-			im.Set(x, 239-i, color.White)
-		}
-	}
-	for y := 0; y < 240; y++ {
-		for i := 0; i < 4; i++ {
-			im.Set(i, y, color.White)
-			im.Set(255-i, y, color.White)
-		}
-	}
+	text = strings.Replace(text, "_", " ", -1)
 	DrawCenteredText(im, text, 1, 2, color.RGBA{128, 128, 128, 255})
 	DrawCenteredText(im, text, 0, 0, color.White)
 	return im
