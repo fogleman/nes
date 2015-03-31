@@ -11,7 +11,7 @@ import (
 type View interface {
 	Enter()
 	Exit()
-	Update(dt float64)
+	Update(t, dt float64)
 }
 
 type Director struct {
@@ -49,7 +49,7 @@ func (d *Director) Step() {
 	dt := timestamp - d.timestamp
 	d.timestamp = timestamp
 	if d.view != nil {
-		d.view.Update(dt)
+		d.view.Update(timestamp, dt)
 	}
 }
 

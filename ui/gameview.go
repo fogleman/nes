@@ -31,7 +31,7 @@ func (view *GameView) Exit() {
 	view.console.SetAudioChannel(nil)
 }
 
-func (view *GameView) Update(dt float64) {
+func (view *GameView) Update(t, dt float64) {
 	window := view.director.window
 	console := view.console
 	if readKey(window, glfw.KeyEscape) {
