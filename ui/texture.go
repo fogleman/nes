@@ -78,7 +78,7 @@ func (t *Texture) coord(index int) (x, y, dx, dy float32) {
 	x = float32(index%textureDim) / textureDim
 	y = float32(index/textureDim) / textureDim
 	dx = 1.0 / textureDim
-	dy = 1.0 / textureDim
+	dy = dx * 240 / 256
 	return
 }
 
