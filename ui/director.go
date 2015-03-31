@@ -68,3 +68,7 @@ func (d *Director) PlayROM(path string) {
 	}
 	d.SetView(NewGameView(d, console, path))
 }
+
+func (d *Director) ShowMenu() {
+	d.SetView(NewMenuView(d))
+}
