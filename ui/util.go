@@ -4,7 +4,10 @@ import (
 	"crypto/md5"
 	"fmt"
 	"image"
+	"image/draw"
+	"image/png"
 	"io/ioutil"
+	"os"
 
 	"github.com/go-gl/gl/v2.1/gl"
 )
@@ -32,7 +35,21 @@ func createTexture() uint32 {
 func setTexture(im *image.RGBA) {
 	size := im.Rect.Size()
 	gl.TexImage2D(
-		gl.TEXTURE_2D, 0, gl.RGBA,
-		int32(size.X), int32(size.Y),
+		gl.TEXTURE_2D, 0, gl.RGBA, int32(size.X), int32(size.Y),
 		0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix))
+}
+
+func copyImage(src image.Image) *image.RGBA {
+	dst := image.NewRGBA(src.Bounds())
+	draw.Draw(dst, dst.Rect, src, image.ZP, draw.Src)
+	return dst
+}
+
+func loadPNG(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return png.Decode(file)
 }

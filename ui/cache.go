@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"fmt"
+	"image"
 	"io"
 	"log"
 	"net/http"
@@ -9,39 +9,45 @@ import (
 	"os/user"
 )
 
-const baseThumbnailURL = "http://www.michaelfogleman.com/static/nes/"
+type Cache struct {
+	homeDir string
+	ch      chan string
+}
 
-var homeDir string
-
-func init() {
+func NewCache() *Cache {
 	u, err := user.Current()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	homeDir = u.HomeDir
+	cache := Cache{}
+	cache.homeDir = u.HomeDir
+	cache.ch = make(chan string, 1024)
+	return &cache
 }
 
-func EnsureThumbnail(path string) {
+func (c *Cache) LoadThumbnail(path string) image.Image {
+	im := CreateGenericThumbnail(path)
 	hash, err := hashFile(path)
 	if err != nil {
-		log.Fatalln(err)
+		return im
 	}
-	LoadThumbnail(hash)
-}
-
-func LoadThumbnail(hash string) {
-	path := homeDir + "/.nes/thumbnail/" + hash + ".png"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		DownloadThumbnail(hash) // TODO: goroutine
+	thumbnailPath := c.homeDir + "/.nes/thumbnail/" + hash + ".png"
+	if _, err := os.Stat(thumbnailPath); os.IsNotExist(err) {
+		go c.downloadThumbnail(path, hash)
+		return im
 	} else {
-		fmt.Println("exists")
+		thumbnail, err := loadPNG(thumbnailPath)
+		if err != nil {
+			return im
+		}
+		return thumbnail
 	}
 }
 
-func DownloadThumbnail(hash string) error {
-	dir := homeDir + "/.nes/thumbnail/"
-	path := dir + hash + ".png"
-	url := baseThumbnailURL + hash + ".png"
+func (c *Cache) downloadThumbnail(path, hash string) error {
+	dir := c.homeDir + "/.nes/thumbnail/"
+	thumbnailPath := dir + hash + ".png"
+	url := "http://www.michaelfogleman.com/static/nes/" + hash + ".png"
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -53,7 +59,7 @@ func DownloadThumbnail(hash string) error {
 		return err
 	}
 
-	file, err := os.Create(path)
+	file, err := os.Create(thumbnailPath)
 	if err != nil {
 		return err
 	}
@@ -62,6 +68,8 @@ func DownloadThumbnail(hash string) error {
 	if _, err := io.Copy(file, resp.Body); err != nil {
 		return err
 	}
+
+	c.ch <- path
 
 	return nil
 }

@@ -20,7 +20,7 @@ type MenuView struct {
 }
 
 func NewMenuView(director *Director, paths []string) View {
-	texture := NewTexture()
+	texture := NewTexture(NewCache())
 	return &MenuView{director, paths, texture, 0, 0, 0, 0, 0, 0}
 }
 
@@ -68,7 +68,7 @@ func (view *MenuView) Exit() {
 }
 
 func (view *MenuView) Update(t, dt float64) {
-	view.texture.Sync()
+	view.texture.Purge()
 	window := view.director.window
 	w, h := window.GetFramebufferSize()
 	sx := 256 + margin*2

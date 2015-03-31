@@ -1,31 +1,44 @@
 package ui
 
-import (
-	"image"
-	"image/draw"
-
-	"github.com/go-gl/gl/v2.1/gl"
-)
+import "github.com/go-gl/gl/v2.1/gl"
 
 const textureSize = 4096
 const textureDim = textureSize / 256
 const textureCount = textureDim * textureDim
 
 type Texture struct {
+	cache   *Cache
 	texture uint32
-	im      *image.RGBA
 	lookup  map[string]int
+	reverse [textureCount]string
 	access  [textureCount]int
 	counter int
-	dirty   bool
 }
 
-func NewTexture() *Texture {
+func NewTexture(cache *Cache) *Texture {
+	texture := createTexture()
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+	gl.TexImage2D(
+		gl.TEXTURE_2D, 0, gl.RGBA,
+		textureSize, textureSize,
+		0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.BindTexture(gl.TEXTURE_2D, 0)
 	t := Texture{}
-	t.texture = createTexture()
-	t.im = image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
+	t.cache = cache
+	t.texture = texture
 	t.lookup = make(map[string]int)
 	return &t
+}
+
+func (t *Texture) Purge() {
+	for {
+		select {
+		case path := <-t.cache.ch:
+			delete(t.lookup, path)
+		default:
+			return
+		}
+	}
 }
 
 func (t *Texture) Bind() {
@@ -34,15 +47,6 @@ func (t *Texture) Bind() {
 
 func (t *Texture) Unbind() {
 	gl.BindTexture(gl.TEXTURE_2D, 0)
-}
-
-func (t *Texture) Sync() {
-	if t.dirty {
-		t.Bind()
-		setTexture(t.im)
-		t.Unbind()
-		t.dirty = false
-	}
 }
 
 func (t *Texture) Lookup(path string) (x, y, dx, dy float32) {
@@ -80,13 +84,16 @@ func (t *Texture) coord(index int) (x, y, dx, dy float32) {
 
 func (t *Texture) load(path string) int {
 	index := t.lru()
+	delete(t.lookup, t.reverse[index])
 	t.mark(index)
 	t.lookup[path] = index
-	t.dirty = true
-	x := (index % textureDim) * 256
-	y := (index / textureDim) * 256
-	r := image.Rect(x, y, x+256, y+240)
-	im := CreateGenericThumbnail(path)
-	draw.Draw(t.im, r, im, image.ZP, draw.Src)
+	t.reverse[index] = path
+	x := int32((index % textureDim) * 256)
+	y := int32((index / textureDim) * 256)
+	im := copyImage(t.cache.LoadThumbnail(path))
+	size := im.Rect.Size()
+	gl.TexSubImage2D(
+		gl.TEXTURE_2D, 0, x, y, int32(size.X), int32(size.Y),
+		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix))
 	return index
 }
