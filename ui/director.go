@@ -1,7 +1,11 @@
 package ui
 
 import (
+	"io/ioutil"
 	"log"
+	"os"
+	"path"
+	"strings"
 
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
@@ -61,7 +65,7 @@ func (d *Director) Run() {
 	}
 }
 
-func (d *Director) PlayROM(path string) {
+func (d *Director) PlayGame(path string) {
 	console, err := nes.NewConsole(path)
 	if err != nil {
 		log.Fatalln(err)
@@ -70,5 +74,29 @@ func (d *Director) PlayROM(path string) {
 }
 
 func (d *Director) ShowMenu() {
-	d.SetView(NewMenuView(d))
+	d.SetView(NewMenuView(d, getPaths(os.Args[1])))
+}
+
+func getPaths(arg string) []string {
+	info, err := os.Stat(arg)
+	if err != nil {
+		return nil
+	}
+	if info.IsDir() {
+		infos, err := ioutil.ReadDir(arg)
+		if err != nil {
+			return nil
+		}
+		var result []string
+		for _, info := range infos {
+			name := info.Name()
+			if !strings.HasSuffix(name, ".nes") {
+				continue
+			}
+			result = append(result, path.Join(arg, name))
+		}
+		return result
+	} else {
+		return []string{arg}
+	}
 }

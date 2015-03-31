@@ -11,13 +11,14 @@ const (
 )
 
 type MenuView struct {
-	director *Director
-	i, j     int
-	t        float64
+	director     *Director
+	paths        []string
+	nx, ny, i, j int
+	t            float64
 }
 
-func NewMenuView(director *Director) View {
-	return &MenuView{director, 0, 0, 0}
+func NewMenuView(director *Director, paths []string) View {
+	return &MenuView{director, paths, 0, 0, 0, 0, 0}
 }
 
 func (view *MenuView) OnKey(
@@ -33,9 +34,16 @@ func (view *MenuView) OnKey(
 			view.i--
 		case glfw.KeyRight:
 			view.i++
+		case glfw.KeyEnter:
+			view.OnSelect()
 		}
 	}
 	view.t = glfw.GetTime()
+}
+
+func (view *MenuView) OnSelect() {
+	index := view.nx*view.j + view.i
+	view.director.PlayGame(view.paths[index])
 }
 
 func (view *MenuView) Enter() {
@@ -44,6 +52,7 @@ func (view *MenuView) Enter() {
 }
 
 func (view *MenuView) Exit() {
+	view.director.window.SetKeyCallback(nil)
 }
 
 func (view *MenuView) Update(t, dt float64) {
@@ -69,6 +78,8 @@ func (view *MenuView) Update(t, dt float64) {
 		}
 	}
 	gl.PopMatrix()
+	view.nx = nx
+	view.ny = ny
 }
 
 func (view *MenuView) clampSelection(nx, ny int) {

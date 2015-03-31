@@ -35,15 +35,17 @@ func (view *GameView) Update(t, dt float64) {
 	window := view.director.window
 	console := view.console
 	if readKey(window, glfw.KeyEscape) {
-		window.SetShouldClose(true)
+		view.director.ShowMenu()
 	}
 	if readKey(window, glfw.KeyR) {
 		console.Reset()
 	}
 	updateControllers(window, console)
 	console.StepSeconds(dt)
-	setTexture(view.texture, console.Buffer())
+	gl.BindTexture(gl.TEXTURE_2D, view.texture)
+	setTexture(console.Buffer())
 	drawQuad(view.director.window)
+	gl.BindTexture(gl.TEXTURE_2D, 0)
 }
 
 func createTexture() uint32 {
@@ -54,12 +56,12 @@ func createTexture() uint32 {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.BindTexture(gl.TEXTURE_2D, 0)
 	return texture
 }
 
-func setTexture(texture uint32, im *image.RGBA) {
+func setTexture(im *image.RGBA) {
 	size := im.Rect.Size()
-	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexImage2D(
 		gl.TEXTURE_2D, 0, gl.RGBA,
 		int32(size.X), int32(size.Y),

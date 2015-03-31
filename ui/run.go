@@ -59,7 +59,7 @@ func Run(path string) {
 
 	// run director
 	director := NewDirector(window, audio)
-	// director.PlayROM(path)
+	// director.PlayGame(path)
 	director.ShowMenu()
 	director.Run()
 }
