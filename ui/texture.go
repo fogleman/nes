@@ -1,21 +1,37 @@
 package ui
 
-import "github.com/go-gl/gl/v2.1/gl"
+import (
+	"image"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"os/user"
+	"path"
+	"strings"
+
+	"github.com/go-gl/gl/v2.1/gl"
+)
 
 const textureSize = 4096
 const textureDim = textureSize / 256
 const textureCount = textureDim * textureDim
 
 type Texture struct {
-	cache   *Cache
 	texture uint32
 	lookup  map[string]int
 	reverse [textureCount]string
 	access  [textureCount]int
 	counter int
+	homeDir string
+	ch      chan string
 }
 
-func NewTexture(cache *Cache) *Texture {
+func NewTexture() *Texture {
+	u, err := user.Current()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	texture := createTexture()
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexImage2D(
@@ -24,16 +40,17 @@ func NewTexture(cache *Cache) *Texture {
 		0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 	t := Texture{}
-	t.cache = cache
 	t.texture = texture
 	t.lookup = make(map[string]int)
+	t.homeDir = u.HomeDir
+	t.ch = make(chan string, 1024)
 	return &t
 }
 
 func (t *Texture) Purge() {
 	for {
 		select {
-		case path := <-t.cache.ch:
+		case path := <-t.ch:
 			delete(t.lookup, path)
 		default:
 			return
@@ -90,10 +107,63 @@ func (t *Texture) load(path string) int {
 	t.reverse[index] = path
 	x := int32((index % textureDim) * 256)
 	y := int32((index / textureDim) * 256)
-	im := copyImage(t.cache.LoadThumbnail(path))
+	im := copyImage(t.loadThumbnail(path))
 	size := im.Rect.Size()
 	gl.TexSubImage2D(
 		gl.TEXTURE_2D, 0, x, y, int32(size.X), int32(size.Y),
 		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix))
 	return index
+}
+
+func (t *Texture) loadThumbnail(romPath string) image.Image {
+	_, name := path.Split(romPath)
+	name = strings.TrimSuffix(name, ".nes")
+	name = strings.Replace(name, "_", " ", -1)
+	name = strings.Title(name)
+	im := CreateGenericThumbnail(name)
+	hash, err := hashFile(romPath)
+	if err != nil {
+		return im
+	}
+	thumbnailPath := t.homeDir + "/.nes/thumbnail/" + hash + ".png"
+	if _, err := os.Stat(thumbnailPath); os.IsNotExist(err) {
+		go t.downloadThumbnail(romPath, hash)
+		return im
+	} else {
+		thumbnail, err := loadPNG(thumbnailPath)
+		if err != nil {
+			return im
+		}
+		return thumbnail
+	}
+}
+
+func (t *Texture) downloadThumbnail(path, hash string) error {
+	dir := t.homeDir + "/.nes/thumbnail/"
+	thumbnailPath := dir + hash + ".png"
+	url := "http://www.michaelfogleman.com/static/nes/" + hash + ".png"
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	file, err := os.Create(thumbnailPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(file, resp.Body); err != nil {
+		return err
+	}
+
+	t.ch <- path
+
+	return nil
 }

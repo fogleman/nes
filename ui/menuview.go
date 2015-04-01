@@ -20,7 +20,7 @@ type MenuView struct {
 }
 
 func NewMenuView(director *Director, paths []string) View {
-	texture := NewTexture(NewCache())
+	texture := NewTexture()
 	return &MenuView{director, paths, texture, 0, 0, 0, 0, 0, 0}
 }
 
