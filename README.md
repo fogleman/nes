@@ -14,10 +14,16 @@ http://www.michaelfogleman.com/static/nes/
 
 ### Installation
 
-The `go get` command will automatically fetch dependencies, compile the binary
-and place it in your `$GOPATH/bin` directory.
+The `go get` command will automatically fetch the dependencies listed below,
+compile the binary and place it in your `$GOPATH/bin` directory.
 
     go get github.com/fogleman/nes
+
+### Dependencies
+
+    github.com/go-gl/gl/v2.1/gl
+    github.com/go-gl/glfw/v3.1/glfw
+    code.google.com/p/portaudio-go/portaudio
 
 ### Usage
 
@@ -32,14 +38,10 @@ directory.
 3. If a file is specified, the program will run that rom.
 
 For 1 & 2, the program will display a menu screen to select which rom to play.
+The thumbnails are downloaded from an online database keyed by the md5 sum of
+the rom file.
 
 ![Menu Screenshot](http://i.imgur.com/pwetBLv.png)
-
-### Dependencies
-
-    github.com/go-gl/gl/v2.1/gl
-    github.com/go-gl/glfw/v3.1/glfw
-    code.google.com/p/portaudio-go/portaudio
 
 ### Controls
 
