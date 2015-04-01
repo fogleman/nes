@@ -30,7 +30,7 @@ compile the binary and place it in your `$GOPATH/bin` directory.
     nes [rom_file|rom_directory]
 
 1. If no arguments are specified, the program will look for rom files in
-the same directory as the executable.
+the current working directory.
 
 2. If a directory is specified, the program will look for rom files in that
 directory.
