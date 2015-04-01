@@ -1,11 +1,7 @@
 package ui
 
 import (
-	"io/ioutil"
 	"log"
-	"os"
-	"path"
-	"strings"
 
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
@@ -30,7 +26,6 @@ func NewDirector(window *glfw.Window, audio *Audio) *Director {
 	director := Director{}
 	director.window = window
 	director.audio = audio
-	director.menuView = NewMenuView(&director, getPaths(os.Args[1]))
 	return &director
 }
 
@@ -59,6 +54,16 @@ func (d *Director) Step() {
 	}
 }
 
+func (d *Director) Start(paths []string) {
+	d.menuView = NewMenuView(d, paths)
+	if len(paths) == 1 {
+		d.PlayGame(paths[0])
+	} else {
+		d.ShowMenu()
+	}
+	d.Run()
+}
+
 func (d *Director) Run() {
 	for !d.window.ShouldClose() {
 		d.Step()
@@ -77,28 +82,4 @@ func (d *Director) PlayGame(path string) {
 
 func (d *Director) ShowMenu() {
 	d.SetView(d.menuView)
-}
-
-func getPaths(arg string) []string {
-	info, err := os.Stat(arg)
-	if err != nil {
-		return nil
-	}
-	if info.IsDir() {
-		infos, err := ioutil.ReadDir(arg)
-		if err != nil {
-			return nil
-		}
-		var result []string
-		for _, info := range infos {
-			name := info.Name()
-			if !strings.HasSuffix(name, ".nes") {
-				continue
-			}
-			result = append(result, path.Join(arg, name))
-		}
-		return result
-	} else {
-		return []string{arg}
-	}
 }
