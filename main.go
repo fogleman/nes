@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	log.SetFlags(0)
 	paths := getPaths()
 	if len(paths) == 0 {
 		log.Fatalln("no rom files specified or found")
