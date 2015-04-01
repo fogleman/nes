@@ -12,13 +12,28 @@ the screen.
 
 http://www.michaelfogleman.com/static/nes/
 
-### Usage
+### Installation
+
+The `go get` command will automatically fetch dependencies, compile the binary
+and place it in your `$GOPATH/bin` directory.
 
     go get github.com/fogleman/nes
-    nes <rom_file.nes>
 
-The `go get` command will automatically fetch the dependencies listed below,
-compile the binary and place it in your `$GOPATH/bin` directory.
+### Usage
+
+    nes [rom_file|rom_directory]
+
+1. If no arguments are specified, the program will look for rom files in
+the same directory as the executable.
+
+2. If a directory is specified, the program will look for rom files in that
+directory.
+
+3. If a file is specified, the program will run that rom.
+
+For 1 & 2, the program will display a menu screen to select which rom to play.
+
+![Menu Screenshot](http://i.imgur.com/pwetBLv.png)
 
 ### Dependencies
 
