@@ -1,13 +1,16 @@
 package ui
 
 import (
+	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
 const (
-	border = 10
-	margin = 10
+	border       = 10
+	margin       = 10
+	initialDelay = 0.3
+	repeatDelay  = 0.1
 )
 
 type MenuView struct {
@@ -17,40 +20,63 @@ type MenuView struct {
 	nx, ny, i, j int
 	scroll       int
 	t            float64
+	buttons      [8]bool
+	times        [8]float64
 }
 
 func NewMenuView(director *Director, paths []string) View {
-	texture := NewTexture()
-	return &MenuView{director, paths, texture, 0, 0, 0, 0, 0, 0}
+	view := MenuView{}
+	view.director = director
+	view.paths = paths
+	view.texture = NewTexture()
+	return &view
 }
 
-func (view *MenuView) OnKey(
-	window *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
-	mods glfw.ModifierKey) {
-	if action == glfw.Press {
-		switch key {
-		case glfw.KeyUp:
-			view.j--
-		case glfw.KeyDown:
-			view.j++
-		case glfw.KeyLeft:
-			view.i--
-		case glfw.KeyRight:
-			view.i++
-		default:
-			return
+func (view *MenuView) checkButtons() {
+	window := view.director.window
+	k1 := readKeys(window, false)
+	j1 := readJoystick(glfw.Joystick1, false)
+	j2 := readJoystick(glfw.Joystick2, false)
+	buttons := combineButtons(combineButtons(j1, j2), k1)
+	now := glfw.GetTime()
+	for i := range buttons {
+		if buttons[i] && !view.buttons[i] {
+			view.times[i] = now + initialDelay
+			view.onPress(i)
+		} else if !buttons[i] && view.buttons[i] {
+			view.onRelease(i)
+		} else if buttons[i] && now >= view.times[i] {
+			view.times[i] = now + repeatDelay
+			view.onPress(i)
 		}
-		view.t = glfw.GetTime()
 	}
-	if action == glfw.Release {
-		switch key {
-		case glfw.KeyEnter:
-			view.OnSelect()
-		}
+	view.buttons = buttons
+}
+
+func (view *MenuView) onPress(index int) {
+	switch index {
+	case nes.ButtonUp:
+		view.j--
+	case nes.ButtonDown:
+		view.j++
+	case nes.ButtonLeft:
+		view.i--
+	case nes.ButtonRight:
+		view.i++
+	default:
+		return
+	}
+	view.t = glfw.GetTime()
+}
+
+func (view *MenuView) onRelease(index int) {
+	switch index {
+	case nes.ButtonStart, nes.ButtonA:
+		view.onSelect()
 	}
 }
 
-func (view *MenuView) OnSelect() {
+func (view *MenuView) onSelect() {
 	index := view.nx*(view.j+view.scroll) + view.i
 	if index >= len(view.paths) {
 		return
@@ -61,14 +87,13 @@ func (view *MenuView) OnSelect() {
 func (view *MenuView) Enter() {
 	gl.ClearColor(0.333, 0.333, 0.333, 1)
 	view.director.SetTitle("Select Game")
-	view.director.window.SetKeyCallback(view.OnKey)
 }
 
 func (view *MenuView) Exit() {
-	view.director.window.SetKeyCallback(nil)
 }
 
 func (view *MenuView) Update(t, dt float64) {
+	view.checkButtons()
 	view.texture.Purge()
 	window := view.director.window
 	w, h := window.GetFramebufferSize()
