@@ -33,6 +33,12 @@ func (view *GameView) Exit() {
 func (view *GameView) Update(t, dt float64) {
 	window := view.director.window
 	console := view.console
+	if joystickReset(glfw.Joystick1) {
+		view.director.ShowMenu()
+	}
+	if joystickReset(glfw.Joystick2) {
+		view.director.ShowMenu()
+	}
 	if readKey(window, glfw.KeyEscape) {
 		view.director.ShowMenu()
 	}

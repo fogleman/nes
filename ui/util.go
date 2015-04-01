@@ -49,6 +49,14 @@ func readJoystick(joy glfw.Joystick, turbo bool) [8]bool {
 	return result
 }
 
+func joystickReset(joy glfw.Joystick) bool {
+	if !glfw.JoystickPresent(joy) {
+		return false
+	}
+	buttons := glfw.GetJoystickButtons(joy)
+	return buttons[4] == 1 && buttons[5] == 1
+}
+
 func combineButtons(a, b [8]bool) [8]bool {
 	var result [8]bool
 	for i := 0; i < 8; i++ {
