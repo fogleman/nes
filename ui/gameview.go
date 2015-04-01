@@ -21,6 +21,7 @@ func NewGameView(director *Director, console *nes.Console, title string) View {
 }
 
 func (view *GameView) Enter() {
+	gl.ClearColor(0, 0, 0, 1)
 	view.director.SetTitle(view.title)
 	view.console.SetAudioChannel(view.director.audio.channel)
 }

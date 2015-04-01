@@ -59,6 +59,7 @@ func (view *MenuView) OnSelect() {
 }
 
 func (view *MenuView) Enter() {
+	gl.ClearColor(0.333, 0.333, 0.333, 1)
 	view.director.SetTitle("Select Game")
 	view.director.window.SetKeyCallback(view.OnKey)
 }
@@ -137,6 +138,18 @@ func (view *MenuView) clampSelection(nx, ny int) {
 }
 
 func drawThumbnail(x, y, tx, ty, tw, th float32) {
+	sx := x + 4
+	sy := y + 4
+	gl.Disable(gl.TEXTURE_2D)
+	gl.Color3f(0.2, 0.2, 0.2)
+	gl.Begin(gl.QUADS)
+	gl.Vertex2f(sx, sy)
+	gl.Vertex2f(sx+256, sy)
+	gl.Vertex2f(sx+256, sy+240)
+	gl.Vertex2f(sx, sy+240)
+	gl.End()
+	gl.Enable(gl.TEXTURE_2D)
+	gl.Color3f(1, 1, 1)
 	gl.Begin(gl.QUADS)
 	gl.TexCoord2f(tx, ty)
 	gl.Vertex2f(x, y)
