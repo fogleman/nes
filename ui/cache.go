@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"path"
+	"strings"
 )
 
 type Cache struct {
@@ -25,15 +27,19 @@ func NewCache() *Cache {
 	return &cache
 }
 
-func (c *Cache) LoadThumbnail(path string) image.Image {
-	im := CreateGenericThumbnail(path)
-	hash, err := hashFile(path)
+func (c *Cache) LoadThumbnail(romPath string) image.Image {
+	_, name := path.Split(romPath)
+	name = strings.TrimSuffix(name, ".nes")
+	name = strings.Replace(name, "_", " ", -1)
+	name = strings.Title(name)
+	im := CreateGenericThumbnail(name)
+	hash, err := hashFile(romPath)
 	if err != nil {
 		return im
 	}
 	thumbnailPath := c.homeDir + "/.nes/thumbnail/" + hash + ".png"
 	if _, err := os.Stat(thumbnailPath); os.IsNotExist(err) {
-		go c.downloadThumbnail(path, hash)
+		go c.downloadThumbnail(romPath, hash)
 		return im
 	} else {
 		thumbnail, err := loadPNG(thumbnailPath)
