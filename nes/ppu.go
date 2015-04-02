@@ -459,7 +459,7 @@ func (ppu *PPU) renderPixel() {
 			color = background
 		}
 	}
-	c := palette[ppu.readPalette(uint16(color))%64]
+	c := Palette[ppu.readPalette(uint16(color))%64]
 	ppu.back.SetRGBA(x, y, c)
 }
 

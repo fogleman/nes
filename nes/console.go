@@ -75,7 +75,7 @@ func (console *Console) Buffer() *image.RGBA {
 }
 
 func (console *Console) BackgroundColor() color.RGBA {
-	return palette[console.PPU.readPalette(0)%64]
+	return Palette[console.PPU.readPalette(0)%64]
 }
 
 func (console *Console) SetButtons1(buttons [8]bool) {

@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"image"
+
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -13,20 +15,24 @@ type GameView struct {
 	console  *nes.Console
 	title    string
 	texture  uint32
+	record   bool
+	frames   []image.Image
 }
 
 func NewGameView(director *Director, console *nes.Console, title string) View {
 	texture := createTexture()
-	return &GameView{director, console, title, texture}
+	return &GameView{director, console, title, texture, false, nil}
 }
 
 func (view *GameView) Enter() {
 	gl.ClearColor(0, 0, 0, 1)
 	view.director.SetTitle(view.title)
 	view.console.SetAudioChannel(view.director.audio.channel)
+	view.director.window.SetKeyCallback(view.onKey)
 }
 
 func (view *GameView) Exit() {
+	view.director.window.SetKeyCallback(nil)
 	view.console.SetAudioChannel(nil)
 }
 
@@ -42,15 +48,35 @@ func (view *GameView) Update(t, dt float64) {
 	if readKey(window, glfw.KeyEscape) {
 		view.director.ShowMenu()
 	}
-	if readKey(window, glfw.KeyR) {
-		console.Reset()
-	}
 	updateControllers(window, console)
 	console.StepSeconds(dt)
 	gl.BindTexture(gl.TEXTURE_2D, view.texture)
 	setTexture(console.Buffer())
 	drawBuffer(view.director.window)
 	gl.BindTexture(gl.TEXTURE_2D, 0)
+	if view.record {
+		view.frames = append(view.frames, copyImage(console.Buffer()))
+	}
+}
+
+func (view *GameView) onKey(window *glfw.Window,
+	key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if action == glfw.Press {
+		switch key {
+		case glfw.KeySpace:
+			screenshot(view.console.Buffer())
+		case glfw.KeyR:
+			view.console.Reset()
+		case glfw.KeyTab:
+			if view.record {
+				view.record = false
+				animation(view.frames)
+				view.frames = nil
+			} else {
+				view.record = true
+			}
+		}
+	}
 }
 
 func drawBuffer(window *glfw.Window) {
