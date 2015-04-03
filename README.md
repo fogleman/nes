@@ -10,18 +10,29 @@ This is an NES emulator written in Go.
 
 http://www.michaelfogleman.com/static/nes/
 
-### Installation
-
-The `go get` command will automatically fetch the dependencies listed below,
-compile the binary and place it in your `$GOPATH/bin` directory.
-
-    go get github.com/fogleman/nes
-
 ### Dependencies
 
     github.com/go-gl/gl/v2.1/gl
     github.com/go-gl/glfw/v3.1/glfw
     code.google.com/p/portaudio-go/portaudio
+
+The portaudio-go dependency requires portaudio on your system:
+
+> To build portaudio-go, you must first have the PortAudio development headers
+> and libraries installed. Some systems provide a package for this; e.g., on
+> Ubuntu you would want to run apt-get install portaudio19-dev. On other systems
+> you might have to install from source.
+
+On Mac, you can use homebrew:
+
+    brew install portaudio
+
+### Installation
+
+The `go get` command will automatically fetch the dependencies listed above,
+compile the binary and place it in your `$GOPATH/bin` directory.
+
+    go get github.com/fogleman/nes
 
 ### Usage
 
