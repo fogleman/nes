@@ -37,6 +37,9 @@ func (view *GameView) Exit() {
 }
 
 func (view *GameView) Update(t, dt float64) {
+	if dt > 1 {
+		dt = 0
+	}
 	window := view.director.window
 	console := view.console
 	if joystickReset(glfw.Joystick1) {
