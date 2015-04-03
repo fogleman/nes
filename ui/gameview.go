@@ -14,14 +14,15 @@ type GameView struct {
 	director *Director
 	console  *nes.Console
 	title    string
+	hash     string
 	texture  uint32
 	record   bool
 	frames   []image.Image
 }
 
-func NewGameView(director *Director, console *nes.Console, title string) View {
+func NewGameView(director *Director, console *nes.Console, title, hash string) View {
 	texture := createTexture()
-	return &GameView{director, console, title, texture, false, nil}
+	return &GameView{director, console, title, hash, texture, false, nil}
 }
 
 func (view *GameView) Enter() {
@@ -29,11 +30,23 @@ func (view *GameView) Enter() {
 	view.director.SetTitle(view.title)
 	view.console.SetAudioChannel(view.director.audio.channel)
 	view.director.window.SetKeyCallback(view.onKey)
+	// load sram
+	cartridge := view.console.Cartridge
+	if cartridge.Battery != 0 {
+		if sram, err := readSRAM(sramPath(view.hash)); err == nil {
+			cartridge.SRAM = sram
+		}
+	}
 }
 
 func (view *GameView) Exit() {
 	view.director.window.SetKeyCallback(nil)
 	view.console.SetAudioChannel(nil)
+	// save sram
+	cartridge := view.console.Cartridge
+	if cartridge.Battery != 0 {
+		writeSRAM(sramPath(view.hash), cartridge.SRAM)
+	}
 }
 
 func (view *GameView) Update(t, dt float64) {

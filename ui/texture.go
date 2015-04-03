@@ -3,10 +3,8 @@ package ui
 import (
 	"image"
 	"io"
-	"log"
 	"net/http"
 	"os"
-	"os/user"
 	"path"
 	"strings"
 
@@ -23,15 +21,10 @@ type Texture struct {
 	reverse [textureCount]string
 	access  [textureCount]int
 	counter int
-	homeDir string
 	ch      chan string
 }
 
 func NewTexture() *Texture {
-	u, err := user.Current()
-	if err != nil {
-		log.Fatalln(err)
-	}
 	texture := createTexture()
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexImage2D(
@@ -42,7 +35,6 @@ func NewTexture() *Texture {
 	t := Texture{}
 	t.texture = texture
 	t.lookup = make(map[string]int)
-	t.homeDir = u.HomeDir
 	t.ch = make(chan string, 1024)
 	return &t
 }
@@ -125,12 +117,12 @@ func (t *Texture) loadThumbnail(romPath string) image.Image {
 	if err != nil {
 		return im
 	}
-	thumbnailPath := t.homeDir + "/.nes/thumbnail/" + hash + ".png"
-	if _, err := os.Stat(thumbnailPath); os.IsNotExist(err) {
+	filename := thumbnailPath(hash)
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		go t.downloadThumbnail(romPath, hash)
 		return im
 	} else {
-		thumbnail, err := loadPNG(thumbnailPath)
+		thumbnail, err := loadPNG(filename)
 		if err != nil {
 			return im
 		}
@@ -138,10 +130,10 @@ func (t *Texture) loadThumbnail(romPath string) image.Image {
 	}
 }
 
-func (t *Texture) downloadThumbnail(path, hash string) error {
-	dir := t.homeDir + "/.nes/thumbnail/"
-	thumbnailPath := dir + hash + ".png"
-	url := "http://www.michaelfogleman.com/static/nes/" + hash + ".png"
+func (t *Texture) downloadThumbnail(romPath, hash string) error {
+	url := thumbnailURL(hash)
+	filename := thumbnailPath(hash)
+	dir, _ := path.Split(filename)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -153,7 +145,7 @@ func (t *Texture) downloadThumbnail(path, hash string) error {
 		return err
 	}
 
-	file, err := os.Create(thumbnailPath)
+	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
@@ -163,7 +155,7 @@ func (t *Texture) downloadThumbnail(path, hash string) error {
 		return err
 	}
 
-	t.ch <- path
+	t.ch <- romPath
 
 	return nil
 }

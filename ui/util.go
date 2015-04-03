@@ -2,6 +2,7 @@ package ui
 
 import (
 	"crypto/md5"
+	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
@@ -9,12 +10,37 @@ import (
 	"image/gif"
 	"image/png"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/user"
+	"path"
 
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
+
+var homeDir string
+
+func init() {
+	u, err := user.Current()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	homeDir = u.HomeDir
+}
+
+func thumbnailURL(hash string) string {
+	return "http://www.michaelfogleman.com/static/nes/" + hash + ".png"
+}
+
+func thumbnailPath(hash string) string {
+	return homeDir + "/.nes/thumbnail/" + hash + ".png"
+}
+
+func sramPath(hash string) string {
+	return homeDir + "/.nes/sram/" + hash + ".dat"
+}
 
 func readKey(window *glfw.Window, key glfw.Key) bool {
 	return window.GetKey(key) == glfw.Press
@@ -159,4 +185,30 @@ func animation(frames []image.Image) {
 			return
 		}
 	}
+}
+
+func writeSRAM(filename string, sram []byte) error {
+	dir, _ := path.Split(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return binary.Write(file, binary.LittleEndian, sram)
+}
+
+func readSRAM(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	sram := make([]byte, 0x2000)
+	if err := binary.Read(file, binary.LittleEndian, sram); err != nil {
+		return nil, err
+	}
+	return sram, nil
 }

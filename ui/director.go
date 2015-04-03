@@ -70,14 +70,19 @@ func (d *Director) Run() {
 		d.window.SwapBuffers()
 		glfw.PollEvents()
 	}
+	d.SetView(nil)
 }
 
 func (d *Director) PlayGame(path string) {
+	hash, err := hashFile(path)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	console, err := nes.NewConsole(path)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	d.SetView(NewGameView(d, console, path))
+	d.SetView(NewGameView(d, console, path, hash))
 }
 
 func (d *Director) ShowMenu() {
