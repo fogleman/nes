@@ -450,7 +450,7 @@ func (ppu *PPU) renderPixel() {
 	} else if b && !s {
 		color = background
 	} else {
-		if ppu.spriteIndexes[i] == 0 && x > 0 && x < 255 {
+		if ppu.spriteIndexes[i] == 0 && x < 255 {
 			ppu.flagSpriteZeroHit = 1
 		}
 		if ppu.spritePriorities[i] == 0 {
