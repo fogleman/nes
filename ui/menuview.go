@@ -134,6 +134,12 @@ func (view *MenuView) Update(t, dt float64) {
 	ny := (h - border*2) / sy
 	ox := (w - nx*sx) / 2
 	oy := (h - ny*sy) / 2
+	if nx < 1 {
+		nx = 1
+	}
+	if ny < 1 {
+		ny = 1
+	}
 	view.nx = nx
 	view.ny = ny
 	view.clampSelection()
@@ -160,8 +166,6 @@ func (view *MenuView) Update(t, dt float64) {
 		drawSelection(x, y, 8, 4)
 	}
 	gl.PopMatrix()
-	view.nx = nx
-	view.ny = ny
 }
 
 func (view *MenuView) clampSelection() {

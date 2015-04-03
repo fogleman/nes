@@ -16,7 +16,7 @@ http://www.michaelfogleman.com/static/nes/
     github.com/go-gl/glfw/v3.1/glfw
     code.google.com/p/portaudio-go/portaudio
 
-The portaudio-go dependency requires portaudio on your system:
+The portaudio-go dependency requires PortAudio on your system:
 
 > To build portaudio-go, you must first have the PortAudio development headers
 > and libraries installed. Some systems provide a package for this; e.g., on
