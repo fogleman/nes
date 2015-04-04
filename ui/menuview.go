@@ -132,8 +132,8 @@ func (view *MenuView) Update(t, dt float64) {
 	sy := 240 + margin*2
 	nx := (w - border*2) / sx
 	ny := (h - border*2) / sy
-	ox := (w - nx*sx) / 2
-	oy := (h - ny*sy) / 2
+	ox := (w-nx*sx)/2 + margin
+	oy := (h-ny*sy)/2 + margin
 	if nx < 1 {
 		nx = 1
 	}

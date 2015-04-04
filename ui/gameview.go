@@ -97,8 +97,8 @@ func (view *GameView) onKey(window *glfw.Window,
 
 func drawBuffer(window *glfw.Window) {
 	w, h := window.GetFramebufferSize()
-	s1 := float32(w) / float32(width)
-	s2 := float32(h) / float32(height)
+	s1 := float32(w) / 256
+	s2 := float32(h) / 240
 	f := float32(1 - padding)
 	var x, y float32
 	if s1 >= s2 {
