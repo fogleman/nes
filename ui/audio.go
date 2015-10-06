@@ -1,6 +1,6 @@
 package ui
 
-import "code.google.com/p/portaudio-go/portaudio"
+import "github.com/gordonklaus/portaudio"
 
 type Audio struct {
 	stream  *portaudio.Stream

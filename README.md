@@ -14,7 +14,7 @@ http://www.michaelfogleman.com/static/nes/
 
     github.com/go-gl/gl/v2.1/gl
     github.com/go-gl/glfw/v3.1/glfw
-    code.google.com/p/portaudio-go/portaudio
+    github.com/gordonklaus/portaudio
 
 The portaudio-go dependency requires PortAudio on your system:
 
