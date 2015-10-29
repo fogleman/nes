@@ -30,6 +30,12 @@ func (view *GameView) Enter() {
 	view.director.SetTitle(view.title)
 	view.console.SetAudioChannel(view.director.audio.channel)
 	view.director.window.SetKeyCallback(view.onKey)
+	// load state
+	if err := view.console.LoadState(savePath(view.hash)); err == nil {
+		return
+	} else {
+		view.console.Reset()
+	}
 	// load sram
 	cartridge := view.console.Cartridge
 	if cartridge.Battery != 0 {
@@ -47,6 +53,8 @@ func (view *GameView) Exit() {
 	if cartridge.Battery != 0 {
 		writeSRAM(sramPath(view.hash), cartridge.SRAM)
 	}
+	// save state
+	view.console.SaveState(savePath(view.hash))
 }
 
 func (view *GameView) Update(t, dt float64) {

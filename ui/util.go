@@ -42,6 +42,10 @@ func sramPath(hash string) string {
 	return homeDir + "/.nes/sram/" + hash + ".dat"
 }
 
+func savePath(hash string) string {
+	return homeDir + "/.nes/save/" + hash + ".dat"
+}
+
 func readKey(window *glfw.Window, key glfw.Key) bool {
 	return window.GetKey(key) == glfw.Press
 }

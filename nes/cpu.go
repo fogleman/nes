@@ -1,6 +1,9 @@
 package nes
 
-import "fmt"
+import (
+	"encoding/gob"
+	"fmt"
+)
 
 const CPUFrequency = 1789773
 
@@ -212,6 +215,46 @@ func (c *CPU) createTable() {
 		c.beq, c.sbc, c.kil, c.isc, c.nop, c.sbc, c.inc, c.isc,
 		c.sed, c.sbc, c.nop, c.isc, c.nop, c.sbc, c.inc, c.isc,
 	}
+}
+
+func (cpu *CPU) Save(encoder *gob.Encoder) error {
+	encoder.Encode(cpu.Cycles)
+	encoder.Encode(cpu.PC)
+	encoder.Encode(cpu.SP)
+	encoder.Encode(cpu.A)
+	encoder.Encode(cpu.X)
+	encoder.Encode(cpu.Y)
+	encoder.Encode(cpu.C)
+	encoder.Encode(cpu.Z)
+	encoder.Encode(cpu.I)
+	encoder.Encode(cpu.D)
+	encoder.Encode(cpu.B)
+	encoder.Encode(cpu.U)
+	encoder.Encode(cpu.V)
+	encoder.Encode(cpu.N)
+	encoder.Encode(cpu.interrupt)
+	encoder.Encode(cpu.stall)
+	return nil
+}
+
+func (cpu *CPU) Load(decoder *gob.Decoder) error {
+	decoder.Decode(&cpu.Cycles)
+	decoder.Decode(&cpu.PC)
+	decoder.Decode(&cpu.SP)
+	decoder.Decode(&cpu.A)
+	decoder.Decode(&cpu.X)
+	decoder.Decode(&cpu.Y)
+	decoder.Decode(&cpu.C)
+	decoder.Decode(&cpu.Z)
+	decoder.Decode(&cpu.I)
+	decoder.Decode(&cpu.D)
+	decoder.Decode(&cpu.B)
+	decoder.Decode(&cpu.U)
+	decoder.Decode(&cpu.V)
+	decoder.Decode(&cpu.N)
+	decoder.Decode(&cpu.interrupt)
+	decoder.Decode(&cpu.stall)
+	return nil
 }
 
 // Reset resets the CPU to its initial powerup state

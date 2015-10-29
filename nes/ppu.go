@@ -1,6 +1,9 @@
 package nes
 
-import "image"
+import (
+	"encoding/gob"
+	"image"
+)
 
 type PPU struct {
 	Memory           // memory interface
@@ -81,6 +84,102 @@ func NewPPU(console *Console) *PPU {
 	ppu.back = image.NewRGBA(image.Rect(0, 0, 256, 240))
 	ppu.Reset()
 	return &ppu
+}
+
+func (ppu *PPU) Save(encoder *gob.Encoder) error {
+	encoder.Encode(ppu.Cycle)
+	encoder.Encode(ppu.ScanLine)
+	encoder.Encode(ppu.Frame)
+	encoder.Encode(ppu.paletteData)
+	encoder.Encode(ppu.nameTableData)
+	encoder.Encode(ppu.oamData)
+	encoder.Encode(ppu.v)
+	encoder.Encode(ppu.t)
+	encoder.Encode(ppu.x)
+	encoder.Encode(ppu.w)
+	encoder.Encode(ppu.f)
+	encoder.Encode(ppu.register)
+	encoder.Encode(ppu.nmiOccurred)
+	encoder.Encode(ppu.nmiOutput)
+	encoder.Encode(ppu.nmiPrevious)
+	encoder.Encode(ppu.nmiDelay)
+	encoder.Encode(ppu.nameTableByte)
+	encoder.Encode(ppu.attributeTableByte)
+	encoder.Encode(ppu.lowTileByte)
+	encoder.Encode(ppu.highTileByte)
+	encoder.Encode(ppu.tileData)
+	encoder.Encode(ppu.spriteCount)
+	encoder.Encode(ppu.spritePatterns)
+	encoder.Encode(ppu.spritePositions)
+	encoder.Encode(ppu.spritePriorities)
+	encoder.Encode(ppu.spriteIndexes)
+	encoder.Encode(ppu.flagNameTable)
+	encoder.Encode(ppu.flagIncrement)
+	encoder.Encode(ppu.flagSpriteTable)
+	encoder.Encode(ppu.flagBackgroundTable)
+	encoder.Encode(ppu.flagSpriteSize)
+	encoder.Encode(ppu.flagMasterSlave)
+	encoder.Encode(ppu.flagGrayscale)
+	encoder.Encode(ppu.flagShowLeftBackground)
+	encoder.Encode(ppu.flagShowLeftSprites)
+	encoder.Encode(ppu.flagShowBackground)
+	encoder.Encode(ppu.flagShowSprites)
+	encoder.Encode(ppu.flagRedTint)
+	encoder.Encode(ppu.flagGreenTint)
+	encoder.Encode(ppu.flagBlueTint)
+	encoder.Encode(ppu.flagSpriteZeroHit)
+	encoder.Encode(ppu.flagSpriteOverflow)
+	encoder.Encode(ppu.oamAddress)
+	encoder.Encode(ppu.bufferedData)
+	return nil
+}
+
+func (ppu *PPU) Load(decoder *gob.Decoder) error {
+	decoder.Decode(&ppu.Cycle)
+	decoder.Decode(&ppu.ScanLine)
+	decoder.Decode(&ppu.Frame)
+	decoder.Decode(&ppu.paletteData)
+	decoder.Decode(&ppu.nameTableData)
+	decoder.Decode(&ppu.oamData)
+	decoder.Decode(&ppu.v)
+	decoder.Decode(&ppu.t)
+	decoder.Decode(&ppu.x)
+	decoder.Decode(&ppu.w)
+	decoder.Decode(&ppu.f)
+	decoder.Decode(&ppu.register)
+	decoder.Decode(&ppu.nmiOccurred)
+	decoder.Decode(&ppu.nmiOutput)
+	decoder.Decode(&ppu.nmiPrevious)
+	decoder.Decode(&ppu.nmiDelay)
+	decoder.Decode(&ppu.nameTableByte)
+	decoder.Decode(&ppu.attributeTableByte)
+	decoder.Decode(&ppu.lowTileByte)
+	decoder.Decode(&ppu.highTileByte)
+	decoder.Decode(&ppu.tileData)
+	decoder.Decode(&ppu.spriteCount)
+	decoder.Decode(&ppu.spritePatterns)
+	decoder.Decode(&ppu.spritePositions)
+	decoder.Decode(&ppu.spritePriorities)
+	decoder.Decode(&ppu.spriteIndexes)
+	decoder.Decode(&ppu.flagNameTable)
+	decoder.Decode(&ppu.flagIncrement)
+	decoder.Decode(&ppu.flagSpriteTable)
+	decoder.Decode(&ppu.flagBackgroundTable)
+	decoder.Decode(&ppu.flagSpriteSize)
+	decoder.Decode(&ppu.flagMasterSlave)
+	decoder.Decode(&ppu.flagGrayscale)
+	decoder.Decode(&ppu.flagShowLeftBackground)
+	decoder.Decode(&ppu.flagShowLeftSprites)
+	decoder.Decode(&ppu.flagShowBackground)
+	decoder.Decode(&ppu.flagShowSprites)
+	decoder.Decode(&ppu.flagRedTint)
+	decoder.Decode(&ppu.flagGreenTint)
+	decoder.Decode(&ppu.flagBlueTint)
+	decoder.Decode(&ppu.flagSpriteZeroHit)
+	decoder.Decode(&ppu.flagSpriteOverflow)
+	decoder.Decode(&ppu.oamAddress)
+	decoder.Decode(&ppu.bufferedData)
+	return nil
 }
 
 func (ppu *PPU) Reset() {
