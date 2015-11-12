@@ -49,6 +49,7 @@ func (view *GameView) Enter() {
 func (view *GameView) Exit() {
 	view.director.window.SetKeyCallback(nil)
 	view.console.SetAudioChannel(nil)
+	view.console.SetAudioSampleRate(0)
 	// save sram
 	cartridge := view.console.Cartridge
 	if cartridge.Battery != 0 {

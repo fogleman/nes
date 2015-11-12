@@ -46,3 +46,20 @@ func HighPassFilter(sampleRate float32, cutoffFreq float32) Filter {
 		A1: (1 - c) * a0i,
 	}
 }
+
+type FilterChain struct {
+	filters []Filter
+}
+
+func (fc *FilterChain) AppendFilter(f Filter) {
+	fc.filters = append(fc.filters, f)
+}
+
+func (fc *FilterChain) Step(x float32) float32 {
+	if fc != nil {
+		for i := range fc.filters {
+			x = fc.filters[i].Step(x)
+		}
+	}
+	return x
+}

@@ -56,6 +56,7 @@ type APU struct {
 	framePeriod byte
 	frameValue  byte
 	frameIRQ    bool
+	filterChain *FilterChain
 }
 
 func NewAPU(console *Console) *APU {
@@ -112,8 +113,9 @@ func (apu *APU) Step() {
 }
 
 func (apu *APU) sendSample() {
+	output := apu.filterChain.Step(apu.output())
 	select {
-	case apu.channel <- apu.output():
+	case apu.channel <- output:
 	default:
 	}
 }
