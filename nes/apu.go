@@ -3,7 +3,6 @@ package nes
 import "encoding/gob"
 
 const frameCounterRate = CPUFrequency / 240.0
-const sampleRate = CPUFrequency / 44100.0 / 2
 
 var lengthTable = []byte{
 	10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
@@ -47,6 +46,7 @@ func init() {
 type APU struct {
 	console     *Console
 	channel     chan float32
+	sampleRate  float64
 	pulse1      Pulse
 	pulse2      Pulse
 	triangle    Triangle
@@ -104,8 +104,8 @@ func (apu *APU) Step() {
 	if f1 != f2 {
 		apu.stepFrameCounter()
 	}
-	s1 := int(float64(cycle1) / sampleRate)
-	s2 := int(float64(cycle2) / sampleRate)
+	s1 := int(float64(cycle1) / apu.sampleRate)
+	s2 := int(float64(cycle2) / apu.sampleRate)
 	if s1 != s2 {
 		apu.sendSample()
 	}

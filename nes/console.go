@@ -93,6 +93,10 @@ func (console *Console) SetAudioChannel(channel chan float32) {
 	console.APU.channel = channel
 }
 
+func (console *Console) SetAudioSampleRate(sampleRate float64) {
+	// Convert samples per second to cpu steps per sample
+	console.APU.sampleRate = CPUFrequency / sampleRate
+}
 func (console *Console) SaveState(filename string) error {
 	dir, _ := path.Split(filename)
 	if err := os.MkdirAll(dir, 0755); err != nil {

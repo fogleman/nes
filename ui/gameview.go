@@ -29,6 +29,7 @@ func (view *GameView) Enter() {
 	gl.ClearColor(0, 0, 0, 1)
 	view.director.SetTitle(view.title)
 	view.console.SetAudioChannel(view.director.audio.channel)
+	view.console.SetAudioSampleRate(view.director.audio.sampleRate)
 	view.director.window.SetKeyCallback(view.onKey)
 	// load state
 	if err := view.console.LoadState(savePath(view.hash)); err == nil {

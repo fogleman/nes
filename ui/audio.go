@@ -3,8 +3,10 @@ package ui
 import "github.com/gordonklaus/portaudio"
 
 type Audio struct {
-	stream  *portaudio.Stream
-	channel chan float32
+	stream         *portaudio.Stream
+	sampleRate     float64
+	outputChannels int
+	channel        chan float32
 }
 
 func NewAudio() *Audio {
@@ -27,6 +29,8 @@ func (a *Audio) Start() error {
 		return err
 	}
 	a.stream = stream
+	a.sampleRate = parameters.SampleRate
+	a.outputChannels = parameters.Output.Channels
 	return nil
 }
 
@@ -35,12 +39,16 @@ func (a *Audio) Stop() error {
 }
 
 func (a *Audio) Callback(out []float32) {
+	var output float32
 	for i := range out {
-		select {
-		case sample := <-a.channel:
-			out[i] = sample
-		default:
-			out[i] = 0
+		if i%a.outputChannels == 0 {
+			select {
+			case sample := <-a.channel:
+				output = sample
+			default:
+				output = 0
+			}
 		}
+		out[i] = output
 	}
 }
