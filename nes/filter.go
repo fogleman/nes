@@ -1,8 +1,6 @@
 package nes
 
-import (
-	"math"
-)
+import "math"
 
 type Filter interface {
 	Step(x float32) float32
@@ -47,18 +45,12 @@ func HighPassFilter(sampleRate float32, cutoffFreq float32) Filter {
 	}
 }
 
-type FilterChain struct {
-	filters []Filter
-}
+type FilterChain []Filter
 
-func (fc *FilterChain) AppendFilter(f Filter) {
-	fc.filters = append(fc.filters, f)
-}
-
-func (fc *FilterChain) Step(x float32) float32 {
+func (fc FilterChain) Step(x float32) float32 {
 	if fc != nil {
-		for i := range fc.filters {
-			x = fc.filters[i].Step(x)
+		for i := range fc {
+			x = fc[i].Step(x)
 		}
 	}
 	return x

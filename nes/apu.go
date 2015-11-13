@@ -56,7 +56,7 @@ type APU struct {
 	framePeriod byte
 	frameValue  byte
 	frameIRQ    bool
-	filterChain *FilterChain
+	filterChain FilterChain
 }
 
 func NewAPU(console *Console) *APU {
