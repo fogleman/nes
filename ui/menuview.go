@@ -151,7 +151,7 @@ func (view *MenuView) Update(t, dt float64) {
 			x := float32(ox + i*sx)
 			y := float32(oy + j*sy)
 			index := nx*(j+view.scroll) + i
-			if index >= len(view.paths) {
+			if index >= len(view.paths) || index < 0 {
 				continue
 			}
 			path := view.paths[index]
