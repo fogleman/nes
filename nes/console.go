@@ -13,8 +13,7 @@ type Console struct {
 	APU         *APU
 	PPU         *PPU
 	Cartridge   *Cartridge
-	Controller1 *Controller
-	Controller2 *Controller
+	Controller1, Controller2 *Controller
 	Mapper      Mapper
 	RAM         []byte
 }
