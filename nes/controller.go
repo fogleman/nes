@@ -13,8 +13,7 @@ const (
 
 type Controller struct {
 	buttons [8]bool
-	index   byte
-	strobe  byte
+	index, strobe byte
 }
 
 func NewController() *Controller {
