@@ -5,7 +5,7 @@ import (
 
 	"github.com/fogleman/nes/nes"
 	"github.com/go-gl/gl/v2.1/gl"
-	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
 const padding = 0
@@ -93,6 +93,10 @@ func (view *GameView) onKey(window *glfw.Window,
 			screenshot(view.console.Buffer())
 		case glfw.KeyR:
 			view.console.Reset()
+		case glfw.KeyF:
+			if mods == glfw.ModControl {
+ 				view.ToggleFullScreen(window)
+	 		}
 		case glfw.KeyTab:
 			if view.record {
 				view.record = false
@@ -104,6 +108,19 @@ func (view *GameView) onKey(window *glfw.Window,
 		}
 	}
 }
+
+func (view *GameView) ToggleFullScreen(window *glfw.Window) {
+	if window.GetMonitor() == nil {
+		monitor := glfw.GetPrimaryMonitor()
+		vid := monitor.GetVideoMode()
+		window.SetMonitor(monitor, 0, 0, vid.Width, vid.Height, 60)
+	} else {
+		//This actually requires glfw 3.3 to work perfectly on osx
+		//otherwise the window is not the right size
+		window.SetMonitor(nil, 0, 0, width*scale, height*scale, 0)
+	}
+}
+
 
 func drawBuffer(window *glfw.Window) {
 	w, h := window.GetFramebufferSize()
