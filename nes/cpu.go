@@ -475,9 +475,9 @@ func (cpu *CPU) Step() int {
 	case modeZeroPage:
 		address = uint16(cpu.Read(cpu.PC + 1))
 	case modeZeroPageX:
-		address = uint16(cpu.Read(cpu.PC+1) + cpu.X)
+		address = uint16(cpu.Read(cpu.PC+1)+cpu.X) & 0xff
 	case modeZeroPageY:
-		address = uint16(cpu.Read(cpu.PC+1) + cpu.Y)
+		address = uint16(cpu.Read(cpu.PC+1)+cpu.Y) & 0xff
 	}
 
 	cpu.PC += uint16(instructionSizes[opcode])
