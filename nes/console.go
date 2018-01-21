@@ -2,6 +2,7 @@ package nes
 
 import (
 	"encoding/gob"
+	"fmt"
 	"image"
 	"image/color"
 	"os"
@@ -42,13 +43,22 @@ func NewConsole(path string) (*Console, error) {
 
 func (console *Console) Reset() {
 	console.CPU.Reset()
+	console.PPU.Frame = 0
 }
 
 func (console *Console) Step() int {
 	cpuCycles := console.CPU.Step()
 	ppuCycles := cpuCycles * 3
 	for i := 0; i < ppuCycles; i++ {
+		frame := console.PPU.Frame
 		console.PPU.Step()
+		if console.PPU.Frame != frame {
+			for j := 0; j < 0x800; j++ {
+				v := console.CPU.Read(uint16(j))
+				fmt.Printf("%d,", v)
+			}
+			fmt.Println()
+		}
 		console.Mapper.Step()
 	}
 	for i := 0; i < cpuCycles; i++ {

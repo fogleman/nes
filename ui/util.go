@@ -65,6 +65,7 @@ func readKeys(window *glfw.Window, turbo bool) [8]bool {
 
 func readJoystick(joy glfw.Joystick, turbo bool) [8]bool {
 	var result [8]bool
+	return result
 	if !glfw.JoystickPresent(joy) {
 		return result
 	}
@@ -76,11 +77,11 @@ func readJoystick(joy glfw.Joystick, turbo bool) [8]bool {
 		result[nes.ButtonB] = buttons[13] == 1 || (turbo && buttons[3] == 1)
 		result[nes.ButtonSelect] = buttons[0] == 1
 		result[nes.ButtonStart] = buttons[3] == 1
-		result[nes.ButtonUp] =  buttons[4] == 1 || axes[1] < -0.5
+		result[nes.ButtonUp] = buttons[4] == 1 || axes[1] < -0.5
 		result[nes.ButtonDown] = buttons[6] == 1 || axes[1] > 0.5
 		result[nes.ButtonLeft] = buttons[7] == 1 || axes[0] < -0.5
 		result[nes.ButtonRight] = buttons[5] == 1 || axes[0] > 0.5
-		return result		
+		return result
 	}
 	result[nes.ButtonA] = buttons[0] == 1 || (turbo && buttons[2] == 1)
 	result[nes.ButtonB] = buttons[1] == 1 || (turbo && buttons[3] == 1)
@@ -97,6 +98,7 @@ func joystickReset(joy glfw.Joystick) bool {
 	if !glfw.JoystickPresent(joy) {
 		return false
 	}
+	return false
 	buttons := glfw.GetJoystickButtons(joy)
 	return buttons[4] == 1 && buttons[5] == 1
 }
