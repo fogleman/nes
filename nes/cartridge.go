@@ -17,12 +17,16 @@ func NewCartridge(prg, chr []byte, mapper, mirror, battery byte) *Cartridge {
 }
 
 func (cartridge *Cartridge) Save(encoder *gob.Encoder) error {
+	encoder.Encode(cartridge.PRG)
+	encoder.Encode(cartridge.CHR)
 	encoder.Encode(cartridge.SRAM)
 	encoder.Encode(cartridge.Mirror)
 	return nil
 }
 
 func (cartridge *Cartridge) Load(decoder *gob.Decoder) error {
+	decoder.Decode(&cartridge.PRG)
+	decoder.Decode(&cartridge.CHR)
 	decoder.Decode(&cartridge.SRAM)
 	decoder.Decode(&cartridge.Mirror)
 	return nil
