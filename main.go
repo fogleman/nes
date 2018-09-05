@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fogleman/nes/ui"
+	"github.com/glats/nes/util"
 )
 
 func main() {
@@ -39,6 +40,13 @@ func getPaths() []string {
 		var result []string
 		for _, info := range infos {
 			name := info.Name()
+			if strings.HasSuffix(name, ".zip") {
+				name, err = util.HandleCompressedFile(name)
+				if err != nil {
+					continue
+				}
+			}
+			log.Println(name)
 			if !strings.HasSuffix(name, ".nes") {
 				continue
 			}
