@@ -10,7 +10,7 @@ import (
 )
 
 func HandleCompressedFile(fileName string) (string, error) {
-	tempFolder := CreateTempFolder()
+	tempFolder := createTempFolder()
 	var rom string
 	r, err := zip.OpenReader(fileName)
 	if err != nil {
@@ -42,7 +42,27 @@ func HandleCompressedFile(fileName string) (string, error) {
 	return rom, nil
 }
 
-func CreateTempFolder() string {
+func RemoveTempFolder() error {
+	tempFolder := "tmp"
+	d, err := os.Open(tempFolder)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		err = os.RemoveAll(path.Join(tempFolder, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createTempFolder() string {
 	tempFolder := "tmp"
 
 	if _, err := os.Stat("tmp"); os.IsNotExist(err) {

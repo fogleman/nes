@@ -46,7 +46,6 @@ func getPaths() []string {
 					continue
 				}
 			}
-			log.Println(name)
 			if !strings.HasSuffix(name, ".nes") {
 				continue
 			}
