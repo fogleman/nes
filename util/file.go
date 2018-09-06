@@ -65,6 +65,11 @@ func RemoveTempFolder() error {
 			return err
 		}
 	}
+	err = os.Remove(tempFolder)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
