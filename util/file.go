@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func HandleCompressedFile(fileName string) (string, error) {
+func handleCompressedFile(fileName string) (string, error) {
 	tempFolder := createTempFolder()
 	var rom string
 	r, err := zip.OpenReader(fileName)
@@ -44,7 +44,7 @@ func HandleCompressedFile(fileName string) (string, error) {
 
 func HandleZip(name string) (string, error) {
 	if strings.HasSuffix(name, ".zip") {
-		return util.HandleCompressedFile(name)
+		return handleCompressedFile(name)
 	}
 	return name, nil
 }
