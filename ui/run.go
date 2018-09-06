@@ -4,6 +4,7 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/fogleman/nes/util"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/gordonklaus/portaudio"
@@ -25,7 +26,8 @@ func init() {
 }
 
 func Run(paths []string) {
-	// initialize audio
+	// initialize
+	defer util.RemoveTempFolder()
 	portaudio.Initialize()
 	defer portaudio.Terminate()
 
