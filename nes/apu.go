@@ -156,9 +156,9 @@ func (apu *APU) stepFrameCounter() {
 	case 5:
 		apu.frameValue = (apu.frameValue + 1) % 5
 		switch apu.frameValue {
-		case 1, 3:
-			apu.stepEnvelope()
 		case 0, 2:
+			apu.stepEnvelope()
+		case 1, 3:
 			apu.stepEnvelope()
 			apu.stepSweep()
 			apu.stepLength()
