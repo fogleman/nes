@@ -1,12 +1,14 @@
 package nes
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"image"
 	"image/color"
 	"os"
 	"path"
+	"strconv"
 )
 
 type Console struct {
@@ -53,11 +55,13 @@ func (console *Console) Step() int {
 		frame := console.PPU.Frame
 		console.PPU.Step()
 		if console.PPU.Frame != frame {
+			var buffer bytes.Buffer
 			for j := 0; j < 0x800; j++ {
 				v := console.CPU.Read(uint16(j))
-				fmt.Printf("%d,", v)
+				buffer.WriteString(strconv.Itoa(int(v)))
+				buffer.WriteString(",")
 			}
-			fmt.Println()
+			fmt.Println(buffer.String())
 		}
 		console.Mapper.Step()
 	}

@@ -65,7 +65,7 @@ func readKeys(window *glfw.Window, turbo bool) [8]bool {
 
 func readJoystick(joy glfw.Joystick, turbo bool) [8]bool {
 	var result [8]bool
-	return result
+	// return result
 	if !glfw.JoystickPresent(joy) {
 		return result
 	}
@@ -98,7 +98,7 @@ func joystickReset(joy glfw.Joystick) bool {
 	if !glfw.JoystickPresent(joy) {
 		return false
 	}
-	return false
+	// return false
 	buttons := glfw.GetJoystickButtons(joy)
 	return buttons[4] == 1 && buttons[5] == 1
 }
