@@ -1,4 +1,4 @@
-module nes
+module github.com/fogleman/nes
 
 go 1.14
 
