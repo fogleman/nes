@@ -287,7 +287,11 @@ func (ppu *PPU) writeOAMAddress(value byte) {
 
 // $2004: OAMDATA (read)
 func (ppu *PPU) readOAMData() byte {
-	return ppu.oamData[ppu.oamAddress]
+	data := ppu.oamData[ppu.oamAddress]
+	if (ppu.oamAddress & 0x03) == 0x02 {
+		data = data & 0xE3
+	}
+	return data
 }
 
 // $2004: OAMDATA (write)
