@@ -595,6 +595,9 @@ func (t *Triangle) output() byte {
 	if !t.enabled {
 		return 0
 	}
+	if t.timerPeriod < 3 {
+        return 0;
+    }
 	if t.lengthValue == 0 {
 		return 0
 	}
