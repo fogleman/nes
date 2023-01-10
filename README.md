@@ -27,16 +27,48 @@ On Mac, you can use homebrew:
 
     brew install portaudio
 
-### Installation
+### Installation [Outdated]
 
 The `go get` command will automatically fetch the dependencies listed above,
 compile the binary and place it in your `$GOPATH/bin` directory.
 
     go get github.com/fogleman/nes
 
+ >since Go 1.8, you don't need to set your GOPATH or GOROOT.
+ >GOPATH by default is under your user/home directory.
+
+### Quick Start
+    git clone https://github.com/fogleman/nes.git
+    cd nes/
+    go mod tidy
+    go build -o nesexe
+    ./nesexe [rom_file|rom_directory]
+ 
+### Error case
+>golang version at least 1.18
+
+>go mod tidy provides all ![Dependencies](https://github.com/ukaase/nes/preview/master/README.md#dependencies) required to wrappers of gl and glfw.
+>but to use theses wrappers you will need the libraries of gl and glfw that you can install in your OS system following theses commands
+
+
+[X11 and Glfw]
+
+    sudo apt install libxcursor-dev
+    sudo apt install libxinerama-dev
+    sudo apt install libxi-dev
+    sudo apt install libx11-dev
+    sudo apt install libglu1-mesa-dev
+    sudo apt install libxrandr-dev
+    
+    
+[Glut]
+
+    sudo apt-get install freeglut3-dev
+
+
 ### Usage
 
-    nes [rom_file|rom_directory]
+    ./nesexe [rom_file|rom_directory]
 
 1. If no arguments are specified, the program will look for rom files in
 the current working directory.
