@@ -47,11 +47,11 @@ compile the binary and place it in your `$GOPATH/bin` directory.
 ### Error case
 >golang version at least 1.18
 
->go mod tidy provides all ![Dependencies](https://github.com/ukaase/nes/preview/master/README.md#dependencies) required to wrappers of gl and glfw.
+>go mod tidy provides all Dependencies required to wrappers of gl and glfw.
 >but to use theses wrappers you will need the libraries of gl and glfw that you can install in your OS system following theses commands
 
 
-[X11 and Glfw]
+[X11 & Glfw]
 
     sudo apt install libxcursor-dev
     sudo apt install libxinerama-dev
@@ -61,10 +61,10 @@ compile the binary and place it in your `$GOPATH/bin` directory.
     sudo apt install libxrandr-dev
     
     
-[Glut]
+[Glut & PortAuido]
 
     sudo apt-get install freeglut3-dev
-
+    sudo apt-get install portaudio19-dev
 
 ### Usage
 
