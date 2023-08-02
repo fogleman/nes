@@ -25,14 +25,9 @@ func NewGameView(director *Director, console *nes.Console, title, hash string) V
 	return &GameView{director, console, title, hash, texture, false, nil}
 }
 
-func (view *GameView) Enter() {
-	gl.ClearColor(0, 0, 0, 1)
-	view.director.SetTitle(view.title)
-	view.console.SetAudioChannel(view.director.audio.channel)
-	view.console.SetAudioSampleRate(view.director.audio.sampleRate)
-	view.director.window.SetKeyCallback(view.onKey)
+func (view *GameView) load(snapshot int) {
 	// load state
-	if err := view.console.LoadState(savePath(view.hash)); err == nil {
+	if err := view.console.LoadState(savePath(view.hash, snapshot)); err == nil {
 		return
 	} else {
 		view.console.Reset()
@@ -40,23 +35,36 @@ func (view *GameView) Enter() {
 	// load sram
 	cartridge := view.console.Cartridge
 	if cartridge.Battery != 0 {
-		if sram, err := readSRAM(sramPath(view.hash)); err == nil {
+		if sram, err := readSRAM(sramPath(view.hash, snapshot)); err == nil {
 			cartridge.SRAM = sram
 		}
 	}
+}
+
+func (view *GameView) save(snapshot int) {
+	// save sram
+	cartridge := view.console.Cartridge
+	if cartridge.Battery != 0 {
+		writeSRAM(sramPath(view.hash, snapshot), cartridge.SRAM)
+	}
+	// save state
+	view.console.SaveState(savePath(view.hash, snapshot))
+}
+
+func (view *GameView) Enter() {
+	gl.ClearColor(0, 0, 0, 1)
+	view.director.SetTitle(view.title)
+	view.console.SetAudioChannel(view.director.audio.channel)
+	view.console.SetAudioSampleRate(view.director.audio.sampleRate)
+	view.director.window.SetKeyCallback(view.onKey)
+	view.load(-1)
 }
 
 func (view *GameView) Exit() {
 	view.director.window.SetKeyCallback(nil)
 	view.console.SetAudioChannel(nil)
 	view.console.SetAudioSampleRate(0)
-	// save sram
-	cartridge := view.console.Cartridge
-	if cartridge.Battery != 0 {
-		writeSRAM(sramPath(view.hash), cartridge.SRAM)
-	}
-	// save state
-	view.console.SaveState(savePath(view.hash))
+	view.save(-1)
 }
 
 func (view *GameView) Update(t, dt float64) {
@@ -88,6 +96,14 @@ func (view *GameView) Update(t, dt float64) {
 func (view *GameView) onKey(window *glfw.Window,
 	key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	if action == glfw.Press {
+		if key >= glfw.Key0 && key <= glfw.Key9 {
+			snapshot := int(key - glfw.Key0)
+			if mods&glfw.ModShift == 0 {
+				view.load(snapshot)
+			} else {
+				view.save(snapshot)
+			}
+		}
 		switch key {
 		case glfw.KeySpace:
 			screenshot(view.console.Buffer())

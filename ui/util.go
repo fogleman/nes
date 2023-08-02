@@ -38,12 +38,18 @@ func thumbnailPath(hash string) string {
 	return homeDir + "/.nes/thumbnail/" + hash + ".png"
 }
 
-func sramPath(hash string) string {
-	return homeDir + "/.nes/sram/" + hash + ".dat"
+func sramPath(hash string, snapshot int) string {
+	if snapshot >= 0 {
+		return fmt.Sprintf("%s/.nes/sram/%s-%d.dat", homeDir, hash, snapshot)
+	}
+	return fmt.Sprintf("%s/.nes/sram/%s.dat", homeDir, hash)
 }
 
-func savePath(hash string) string {
-	return homeDir + "/.nes/save/" + hash + ".dat"
+func savePath(hash string, snapshot int) string {
+	if snapshot >= 0 {
+		return fmt.Sprintf("%s/.nes/save/%s-%d.dat", homeDir, hash, snapshot)
+	}
+	return fmt.Sprintf("%s/.nes/save/%s.dat", homeDir, hash)
 }
 
 func readKey(window *glfw.Window, key glfw.Key) bool {
