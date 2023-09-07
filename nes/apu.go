@@ -65,6 +65,7 @@ func NewAPU(console *Console) *APU {
 	apu.noise.shiftRegister = 1
 	apu.pulse1.channel = 1
 	apu.pulse2.channel = 2
+	apu.framePeriod = 4
 	apu.dmc.cpu = console.CPU
 	return &apu
 }
