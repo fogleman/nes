@@ -24,7 +24,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func Run(paths []string) {
+func Run(paths []string, fullscreen bool) {
 	// initialize audio
 	portaudio.Initialize()
 	defer portaudio.Terminate()
@@ -44,10 +44,20 @@ func Run(paths []string) {
 	// create window
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
+	
+	var err error
+	var window *glfw.Window
+	if fullscreen == false {
+		window, err = glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
+	} else {
+		monitor := glfw.GetPrimaryMonitor()
+		vid := monitor.GetVideoMode()
+		window, err = glfw.CreateWindow(vid.Width, vid.Height, title, monitor, nil)
+	}
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	window.MakeContextCurrent()
 
 	// initialize gl

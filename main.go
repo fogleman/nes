@@ -6,22 +6,39 @@ import (
 	"os"
 	"path"
 	"strings"
+	"fmt"
 
 	"github.com/fogleman/nes/ui"
 )
 
 func main() {
 	log.SetFlags(0)
-	paths := getPaths()
+	args, fullscreen := extractFlags()
+	paths := getPaths(args)
 	if len(paths) == 0 {
 		log.Fatalln("no rom files specified or found")
 	}
-	ui.Run(paths)
+	ui.Run(paths, fullscreen)
 }
 
-func getPaths() []string {
+func extractFlags() ([]string, bool) {
+	args := os.Args
+
+	for i, x := range args {
+		//Probably should add a keyboard shortcut for this also
+		if x == "--fullscreen" {
+			a := append(args[:i], args[i+1:]...)
+			fmt.Printf("fullscreen - args - %v -- a %b", args, a)
+			return a, true
+		}
+	}
+
+	return args, false
+}
+
+func getPaths(argsv []string ) []string {
 	var arg string
-	args := os.Args[1:]
+	args := argsv[1:]
 	if len(args) == 1 {
 		arg = args[0]
 	} else {
