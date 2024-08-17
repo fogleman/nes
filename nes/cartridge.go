@@ -12,7 +12,7 @@ type Cartridge struct {
 }
 
 func NewCartridge(prg, chr []byte, mapper, mirror, battery byte) *Cartridge {
-	sram := make([]byte, 0x2000)
+	sram := make([]byte, 0, 0x2000)
 	return &Cartridge{prg, chr, sram, mapper, mirror, battery}
 }
 
